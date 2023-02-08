@@ -17,4 +17,6 @@ ev3 = EV3Brick()
 
 
 # Write your program here.
-ev3.speaker.beep()
+# ev3.speaker.beep(frequency = 500, duration = 1000)
+notes = ['C4/4', 'C4/4', 'G4/4', 'G4/4']
+ev3.speaker.play_notes(notes, tempo = 120)
