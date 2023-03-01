@@ -24,7 +24,6 @@ while True:
     
     blur = cv2.blur(mask,(14,14))
     
-    edges = cv2.Canny(blur,30,200)
     contours, hierarchy= cv2.findContours(blur, cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE)
     cv2.drawContours(frame, contours, -1, (0,255,0),3)
     cv2.imshow('All Contours', frame)
