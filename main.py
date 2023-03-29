@@ -1,6 +1,7 @@
 #!/usr/bin/env pybricks-micropython
 from pybricks.hubs import EV3Brick
-from pybricks.ev3devices import (Motor, TouchSensor, ColorSensor, InfraredSensor, UltrasonicSensor, GyroSensor)
+from pybricks.ev3devices import (Motor, TouchSensor, ColorSensor,
+                                 InfraredSensor, UltrasonicSensor, GyroSensor)
 from pybricks.parameters import Port, Stop, Direction, Button, Color
 from pybricks.tools import wait, StopWatch, DataLog
 from pybricks.robotics import DriveBase
@@ -11,23 +12,31 @@ from pybricks.media.ev3dev import SoundFile, ImageFile
 # Objects.
 ev3 = EV3Brick()
 
-left_wheel = Motor(Port.B)
-right_wheel = Motor(Port.C)
+left_wheel = Motor(Port.C)
+right_wheel = Motor(Port.B)
 
 fork = Motor(Port.D)
 
-robot = DriveBase(left_wheel, right_wheel, wheel_diameter = 70, axle_track = 100)
+# Wheel diameter and axle track (in millimeters)
+wheel_diameter = 56
+axle_track = 104
 
+# Create a DriveBase object
+robot = DriveBase(left_wheel, right_wheel, wheel_diameter, axle_track)
 
-# Program.
-# notes = ['C4/4', 'C4/4', 'G4/4', 'G4/4', 'A4/4', 'A4/4', 'G4/4', 'F4/4', 'F4/4', 'E4/4', 'E4/4', 'D4/4', 'D4/4', 'C4/4']
-# ev3.speaker.play_notes(notes, tempo = 120)
+# Set the robot's turn speed (in degrees/s)
+turn_speed = 200
 
+# Turn the robot 180 degrees
+robot.straight(500)
+robot.turn(180)
+robot.straight(500)
+robot.turn(-180)
 
-robot.straight(1000)
+# fork.run(speed = 1000)
 
 # Wave
-fork.run_angle(speed = 2000, rotation_angle = 150)
-fork.run_angle(speed = 2000, rotation_angle = -150)
-fork.run_angle(speed = 2000, rotation_angle = 150)
-fork.run_angle(speed = 2000, rotation_angle = -150)
+fork.run_angle(speed = 500, rotation_angle = -10050)
+fork.run_angle(speed = 500, rotation_angle = -150)
+fork.run_angle(speed = 500, rotation_angle = 150)
+fork.run_angle(speed = 500, rotation_angle = -150)
