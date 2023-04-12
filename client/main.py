@@ -15,7 +15,7 @@ ev3 = EV3Brick()
 left_wheel = Motor(Port.C)
 right_wheel = Motor(Port.B)
 
-fork = Motor(Port.D)
+conveyor = Motor(Port.D)
 
 # Wheel diameter and axle track (in millimeters)
 wheel_diameter = 56
@@ -24,19 +24,19 @@ axle_track = 104
 # Create a DriveBase object
 robot = DriveBase(left_wheel, right_wheel, wheel_diameter, axle_track)
 
+# Custom function to check if the robot is moving
+def is_moving():
+    return abs(left_wheel.speed()) > 0 or abs(right_wheel.speed()) > 0
+
+# Pick balls function
+def pick_balls():
+    conveyor.run_angle(speed=500, rotation_angle=-10000, wait=False)
+
 # Set the robot's turn speed (in degrees/s)
 turn_speed = 200
 
-# Turn the robot 180 degrees
-robot.straight(500)
-robot.turn(180)
-robot.straight(500)
-robot.turn(-180)
-
-# fork.run(speed = 1000)
-
-# Wave
-fork.run_angle(speed = 500, rotation_angle = -10050)
-fork.run_angle(speed = 500, rotation_angle = -150)
-fork.run_angle(speed = 500, rotation_angle = 150)
-fork.run_angle(speed = 500, rotation_angle = -150)
+# Drive robot
+pick_balls()
+robot.straight(2000)
+while is_moving():
+    wait(10)
