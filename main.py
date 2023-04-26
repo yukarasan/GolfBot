@@ -52,37 +52,39 @@ def main():
             wait(10)
         state.conveyor_belt_running = False  # Stop the conveyor_belt loop when the robot stops moving
 
-    try: 
-        # Creating a socket object
-        client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    try:
+        while True: 
+            # Creating a socket object
+            client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     
-        # connect to the server at the specified IP address and port
-        client_socket.connect(("172.20.10.4", 8081))
-
-        # create a file-like wrapper for receiving data from the server
-        in_file = client_socket.makefile('r')
-
-        # read the server's response
-        response = in_file.readline()
-        print("Received:", response.strip())
-
-        # Execute instructions received from the server
-        if response.strip() == 'pick_balls':
-            shared_state = SharedState()
-            thread1 = Thread(target=conveyor_belt, args=(shared_state,))
-            thread2 = Thread(target=drive_straight, args=(shared_state,))
-            thread1.start()
-            thread2.start()
-            print("Drive straight")
-        elif response.strip() == 'drive_straight':
-            robot.straight(500)
-            while is_moving():
-                wait(10)
-
-        # close the input stream and socket
-        in_file.close()
-        client_socket.close()
+            # connect to the server at the specified IP address and port
+            client_socket.connect(("172.20.10.4", 8081))
     
+            # create a file-like wrapper for receiving data from the server
+            in_file = client_socket.makefile('r')
+    
+            # read the server's response
+            response = in_file.readline()
+            print("Received:", response.strip())
+    
+            # Execute instructions received from the server
+            if response.strip() == 'pick_balls':
+                shared_state = SharedState()
+                thread1 = Thread(target=conveyor_belt, args=(shared_state,))
+                thread2 = Thread(target=drive_straight, args=(shared_state,))
+                thread1.start()
+                thread2.start()
+                thread1.join()
+                thread2.join()
+                wait(20000)
+            elif response.strip() == 'drive_straight':
+                robot.straight(500)
+                while is_moving():
+                    wait(10)
+    
+            # close the input stream and socket
+            in_file.close()
+            client_socket.close()
     except Exception as e:
         print(e)
 
