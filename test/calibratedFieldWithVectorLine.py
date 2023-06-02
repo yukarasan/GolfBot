@@ -18,6 +18,7 @@ red_upper = np.array([10, 255, 255])
 
 kernel = np.ones((5, 5), np.uint8)
 
+
 def calculate_angle_between_lines(p1, p2, p3, p4):
     # Calculate slopes
     m1 = (p2[1] - p1[1]) / (p2[0] - p1[0])
@@ -27,7 +28,16 @@ def calculate_angle_between_lines(p1, p2, p3, p4):
     tan_theta = abs((m2 - m1) / (1 + m1 * m2))
     angle = math.degrees(math.atan(tan_theta))
 
+    # Calculate cross product
+    v1 = [p2[0] - p1[0], p2[1] - p1[1]]  # vector 1, green line
+    v2 = [p4[0] - p3[0], p4[1] - p3[1]]  # vector 2, red line
+    cross_product = v1[0] * v2[1] - v1[1] * v2[0]
+
+    if cross_product < 0:
+        angle = -angle
+
     return angle
+
 
 def calculate_distance(pt1, pt2):
     # Calculate Euclidean distance between two points
