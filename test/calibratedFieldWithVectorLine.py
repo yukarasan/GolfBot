@@ -16,8 +16,11 @@ upper_white = np.array([180, 30, 255])
 red_lower = np.array([0, 100, 100])
 red_upper = np.array([10, 255, 255])
 
-kernel = np.ones((5, 5), np.uint8)
+# Define lower and upper bounds for orange color
+lower_orange = np.array([5, 50, 50])
+upper_orange = np.array([15, 255, 255])
 
+kernel = np.ones((5, 5), np.uint8)
 
 def calculate_angle_between_lines(p1, p2, p3, p4):
     # Calculate slopes
@@ -91,6 +94,9 @@ while True:
     # Mask for red object
     mask_red = cv2.inRange(hsv, red_lower, red_upper)
 
+    # Mask for orange object
+    mask_orange = cv2.inRange(hsv, lower_orange, upper_orange)
+
     # Define lower and upper bounds for blue color
     lower_pink = np.array([150, 50, 50])
     upper_pink = np.array([180, 255, 255])
@@ -138,13 +144,17 @@ while True:
     mask_white = cv2.dilate(mask_white, kernel, iterations=1)
     mask_red = cv2.erode(mask_red, kernel, iterations=1)
     mask_red = cv2.dilate(mask_red, kernel, iterations=1)
-
+    mask_orange = cv2.erode(mask_orange, kernel, iterations=1)
+    mask_orange = cv2.dilate(mask_orange, kernel, iterations=1)
     # Blur mask for red object
     blur_red = cv2.blur(mask_red, (14, 14))
 
     # Find contours for red object
     contours_red, _ = cv2.findContours(blur_red, cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE)
     cv2.drawContours(frame, contours_red, -1, (0, 255, 0), 3)
+
+    # Find contours for orange object
+    contours_orange, _ = cv2.findContours(mask_orange, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
     # Calculate conversion factor
     if conversion_factor is None and contours_red:
@@ -183,6 +193,7 @@ while True:
         # Find white object and draw minimum enclosing circle
         contours_white, _ = cv2.findContours(mask_white, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         min_distance = np.inf
+        min_distance_orange = np.inf
         closest_ball_center = None
 
         for cnt in contours_white:
@@ -194,12 +205,24 @@ while True:
                     cv2.circle(frame, center, radius, (0, 255, 0), 2)
                     cv2.putText(frame, f"ball {center[0]}, {center[1]}", (center[0] - 20, center[1] - 20),
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+                    # Orange ball:
+                    cv2.circle(frame, center, radius, (0, 255, 255), 2)  # Draw the circle with a cyan color
+                    cv2.putText(frame, f"orange ball {center[0]}, {center[1]}", (center[0] - 20, center[1] - 20),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 2)
 
                     # Calculate distance between centroid of green object and center of white ball
                     pixel_distance = calculate_distance(center, (cX, cY))
+                    pixel_distance = calculate_distance(center, (cX, cY))
+
                     if pixel_distance < min_distance:
                         min_distance = pixel_distance
                         closest_ball_center = center
+
+                    # Calculate distance between centroid of green object and center of orange ball
+                    pixel_distance = calculate_distance(center, (cX, cY))
+                    if pixel_distance < min_distance_orange:
+                        min_distance_orange = pixel_distance
+                        closest_orange_ball_center = center
 
         if closest_ball_center is not None:
             # Draw a line between centroid of green object and center of the closest white ball
