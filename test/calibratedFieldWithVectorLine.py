@@ -18,6 +18,16 @@ red_upper = np.array([10, 255, 255])
 
 kernel = np.ones((5, 5), np.uint8)
 
+def calculate_angle_between_lines(p1, p2, p3, p4):
+    # Calculate slopes
+    m1 = (p2[1] - p1[1]) / (p2[0] - p1[0])
+    m2 = (p4[1] - p3[1]) / (p4[0] - p3[0])
+
+    # Calculate angle
+    tan_theta = abs((m2 - m1) / (1 + m1 * m2))
+    angle = math.degrees(math.atan(tan_theta))
+
+    return angle
 
 def calculate_distance(pt1, pt2):
     # Calculate Euclidean distance between two points
@@ -110,8 +120,6 @@ while True:
             # Display the angle on the frame
             cv2.putText(frame, "Angle: {:.2f}".format(angle), (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
 
-    # Display the frames
-    cv2.imshow("Rectangles and Angle Detection", frame)
 
     # Apply morphological operations
     mask_green = cv2.erode(mask_green, kernel, iterations=1)
@@ -191,6 +199,12 @@ while True:
             distance_cm = min_distance * conversion_factor
             cv2.putText(frame, f"Distance: {distance_cm:.2f} cm", (cX - 20, cY - 40), cv2.FONT_HERSHEY_SIMPLEX, 0.5,
                         (0, 0, 255), 2)
+
+            # Calculate and display angle between the two lines
+            angle_between_lines = calculate_angle_between_lines(blue_center, green_center, (cX, cY),
+                                                                closest_ball_center)
+            cv2.putText(frame, f"Angle between lines: {angle_between_lines:.2f}", (10, 50), cv2.FONT_HERSHEY_SIMPLEX,
+                        0.7, (255, 0, 0), 2)
 
     cv2.imshow('All Contours', frame)
 
