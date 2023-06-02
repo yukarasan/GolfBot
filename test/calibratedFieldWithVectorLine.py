@@ -96,6 +96,8 @@ while True:
 
     # Mask for orange object
     mask_orange = cv2.inRange(hsv, lower_orange, upper_orange)
+    # Exclude white from orange mask
+    mask_orange = cv2.bitwise_and(mask_orange, mask_orange, mask=cv2.bitwise_not(mask_white))
 
     # Define lower and upper bounds for blue color
     lower_pink = np.array([150, 50, 50])
@@ -112,6 +114,7 @@ while True:
     # Find contours for blue and green regions
     blue_contours, _ = cv2.findContours(blue_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     green_contours, _ = cv2.findContours(green_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    contours_orange, _ = cv2.findContours(mask_orange, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
     # Find the largest blue and green contours
     blue_contour = max(blue_contours, key=cv2.contourArea) if blue_contours else None
