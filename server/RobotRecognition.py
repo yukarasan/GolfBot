@@ -42,15 +42,15 @@ while True:
     hsv_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
     # Define lower and upper bounds for blue color
-    lower_blue = np.array([90, 50, 50])
-    upper_blue = np.array([130, 255, 255])
+    lower_pink = np.array([150, 50, 50])
+    upper_pink = np.array([180, 255, 255])
 
     # Define lower and upper bounds for green color
     lower_green = np.array([40, 50, 50])
     upper_green = np.array([80, 255, 255])
 
     # Threshold the image to get only blue and green regions
-    blue_mask = cv2.inRange(hsv_frame, lower_blue, upper_blue)
+    blue_mask = cv2.inRange(hsv_frame, lower_pink, upper_pink)
     green_mask = cv2.inRange(hsv_frame, lower_green, upper_green)
 
     # Find contours for blue and green regions
