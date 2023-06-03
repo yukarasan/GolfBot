@@ -22,6 +22,7 @@ upper_orange = np.array([30, 255, 255])
 
 kernel = np.ones((5, 5), np.uint8)
 
+
 def calculate_angle_between_lines(p1, p2, p3, p4):
     # Calculate slopes
 
@@ -32,12 +33,12 @@ def calculate_angle_between_lines(p1, p2, p3, p4):
         m1 = 0
         m2 = 0
 
-
     # Calculate angle
     if 1 + m1 * m2 != 0 and m2 - m1 != 0:
         tan_theta = abs((m2 - m1) / (1 + m1 * m2))
         angle = math.degrees(math.atan(tan_theta))
-    else: angle = 0
+    else:
+        angle = 0
 
     # Calculate cross product
     v1 = [p2[0] - p1[0], p2[1] - p1[1]]  # vector 1, green line
@@ -54,11 +55,13 @@ def calculate_distance(pt1, pt2):
     # Calculate Euclidean distance between two points
     return np.sqrt((pt1[0] - pt2[0]) ** 2 + (pt1[1] - pt2[1]) ** 2)
 
+
 def calculate_angle(center1, center2):
     x1, y1 = center1
     x2, y2 = center2
-    angle = math.degrees(math.atan2(y2-y1, x2-x1))
+    angle = math.degrees(math.atan2(y2 - y1, x2 - x1))
     return angle
+
 
 def draw_line(image, start, end, color, thickness=2):
     height, width = image.shape[:2]
@@ -81,6 +84,7 @@ def draw_line(image, start, end, color, thickness=2):
         y2 = int(m * x2 + b)
 
     cv2.line(image, (x1, y1), (x2, y2), color, thickness)
+
 
 # Initialize conversion factor
 conversion_factor = None
@@ -132,17 +136,17 @@ while True:
         if blue_moment["m00"] != 0 and green_moment["m00"] != 0:
             blue_center = (int(blue_moment["m10"] / blue_moment["m00"]), int(blue_moment["m01"] / blue_moment["m00"]))
             green_center = (
-            int(green_moment["m10"] / green_moment["m00"]), int(green_moment["m01"] / green_moment["m00"]))
+                int(green_moment["m10"] / green_moment["m00"]), int(green_moment["m01"] / green_moment["m00"]))
 
             # Calculate the angle between the centers of blue and green rectangles
-            angle = calculate_angle(blue_center, green_center)
+            robot_angle = calculate_angle(blue_center, green_center)
 
             # Draw a line connecting the centers of blue and green rectangles
             draw_line(frame, blue_center, green_center, (0, 255, 0), thickness=2)
 
             # Display the angle on the frame
-            cv2.putText(frame, "Angle: {:.2f}".format(angle), (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
-
+            cv2.putText(frame, "Robot angle: {:.2f}".format(robot_angle), (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7,
+                        (0, 255, 0), 2)
 
     # Apply morphological operations
     mask_green = cv2.erode(mask_green, kernel, iterations=1)
@@ -160,7 +164,6 @@ while True:
     # Find contours for red object
     contours_red, _ = cv2.findContours(blur_red, cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE)
     cv2.drawContours(frame, contours_red, -1, (0, 255, 0), 3)
-
 
     # Calculate conversion factor
     if conversion_factor is None and contours_red:
@@ -189,9 +192,7 @@ while True:
     contours_green = sorted(contours_green, key=cv2.contourArea, reverse=True)
     contours_orange, _ = cv2.findContours(mask_orange, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
-    cv2.imshow('orange count', mask_orange)
-
-
+    # cv2.imshow('orange count', mask_orange)
 
     if contours_green:
         M = cv2.moments(contours_green[0])
@@ -216,7 +217,6 @@ while True:
                     cv2.circle(frame, center, radius, (0, 255, 0), 2)
                     cv2.putText(frame, f"ball {center[0]}, {center[1]}", (center[0] - 20, center[1] - 20),
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-
 
                     # Calculate distance between centroid of green object and center of white ball
                     pixel_distance = calculate_distance(center, (cX, cY))
@@ -266,9 +266,9 @@ while True:
                         (0, 0, 255), 2)
 
             # Calculate and display angle between the two lines
-            angle_between_lines = calculate_angle_between_lines(blue_center, green_center, (cX, cY),
-                                                                closest_ball_center)
-            cv2.putText(frame, f"Angle between lines: {angle_between_lines:.2f}", (10, 50), cv2.FONT_HERSHEY_SIMPLEX,
+            ball_angle = calculate_angle_between_lines(blue_center, green_center, (cX, cY),
+                                                       closest_ball_center)
+            cv2.putText(frame, f"Angle to ball: {ball_angle:.2f}", (10, 50), cv2.FONT_HERSHEY_SIMPLEX,
                         0.7, (255, 0, 0), 2)
 
     cv2.imshow('All Contours', frame)
