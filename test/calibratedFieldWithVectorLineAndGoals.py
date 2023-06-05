@@ -86,6 +86,15 @@ def draw_line(image, start, end, color, thickness=2):
     cv2.line(image, (x1, y1), (x2, y2), color, thickness)
 
 
+def draw_line_to_goals(image, start, end, color, thickness=2):
+    # Validate the image input
+    if len(image.shape) < 2:
+        raise ValueError("Invalid image input")
+
+    # Draw a line from start to end using cv2.line() function
+    cv2.line(image, start, end, color, thickness)
+
+
 # Initialize conversion factor
 conversion_factor = None
 
@@ -103,10 +112,6 @@ while True:
     # Adjusting them by half of the wall's thickness
     goal_left = (wall_thickness // 2, frame_height // 2)  # Left side goal
     goal_right = (frame_width - 1 - wall_thickness // 2, frame_height // 2)  # Right side goal
-
-    # Draw the goals on the frame
-    cv2.circle(frame, goal_left, radius=8, color=(0, 255, 255), thickness=-2)  # Yellow dot
-    cv2.circle(frame, goal_right, radius=8, color=(0, 255, 255), thickness=-2)  # Yellow dot
 
     hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
@@ -160,6 +165,7 @@ while True:
             # Display the angle on the frame
             cv2.putText(frame, "Robot angle: {:.2f}".format(robot_angle), (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7,
                         (0, 255, 0), 2)
+
 
     # Apply morphological operations
     mask_green = cv2.erode(mask_green, kernel, iterations=1)
@@ -279,10 +285,29 @@ while True:
                         (0, 0, 255), 2)
 
             # Calculate and display angle between the two lines
-            ball_angle = calculate_angle_between_lines(pink_center, green_center, (cX, cY),
-                                                       closest_ball_center)
+            ball_angle = calculate_angle(green_center, closest_ball_center)
             cv2.putText(frame, f"Angle to ball: {ball_angle:.2f}", (10, 50), cv2.FONT_HERSHEY_SIMPLEX,
                         0.7, (255, 0, 0), 2)
+
+
+        ###############################################################################################################
+        ########################################### FINDING DISTANCE TO GOAL ##########################################
+        ###############################################################################################################
+
+        # Draw the goals on the frame
+        cv2.circle(frame, goal_left, radius=8, color=(0, 255, 255), thickness=-2)  # Yellow dot
+        cv2.circle(frame, goal_right, radius=8, color=(0, 255, 255), thickness=-2)  # Yellow dot
+
+        # Calculate distances to the goals
+        distance_to_left_goal = calculate_distance(green_center, goal_left)
+        distance_to_right_goal = calculate_distance(green_center, goal_right)
+
+        # Draw a line to the closest goal
+        if distance_to_left_goal < distance_to_right_goal:
+            draw_line_to_goals(frame, green_center, goal_left, (0, 255, 255), thickness=2)
+        else:
+            draw_line_to_goals(frame, green_center, goal_right, (0, 255, 255), thickness=2)
+
 
     cv2.imshow('All Contours', frame)
 
