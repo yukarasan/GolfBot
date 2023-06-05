@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 import math
+from server import setUpSocketAndReturnIt, waitForClientAndReturnClientSocket, sendMessageINS
 
 def calculate_angle(center1, center2):
     x1, y1 = center1
@@ -32,7 +33,11 @@ def draw_line(image, start, end, color, thickness=2):
 
 cap = cv2.VideoCapture(0)
 
+server_socket = setUpSocketAndReturnIt()
+
+
 while True:
+
     ret, frame = cap.read()
     frame = cv2.flip(frame, 1)
     if not ret:
@@ -81,6 +86,10 @@ while True:
 
     # Display the frames
     cv2.imshow("Rectangles and Angle Detection", frame)
+
+    client_socket = waitForClientAndReturnClientSocket(server_socket)
+
+    sendMessageINS(angle, client_socket)
 
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
