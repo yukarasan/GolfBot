@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 import math
 
-cap = cv2.VideoCapture(0)
+cap = cv2.VideoCapture(1)
 
 # Range for green
 lower_green = np.array([30, 30, 30], dtype=np.uint8)
@@ -95,6 +95,19 @@ while True:
     if not ret:
         break
 
+    wall_thickness = 20
+
+    frame_height, frame_width = frame.shape[:2]
+
+    # Calculate the midpoints for the goals
+    # Adjusting them by half of the wall's thickness
+    goal_left = (wall_thickness // 2, frame_height // 2)  # Left side goal
+    goal_right = (frame_width - 1 - wall_thickness // 2, frame_height // 2)  # Right side goal
+
+    # Draw the goals on the frame
+    cv2.circle(frame, goal_left, radius=8, color=(0, 255, 255), thickness=-2)  # Yellow dot
+    cv2.circle(frame, goal_right, radius=8, color=(0, 255, 255), thickness=-2)  # Yellow dot
+
     hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
     # Mask for green object
@@ -125,24 +138,24 @@ while True:
     green_contours, _ = cv2.findContours(green_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
     # Find the largest blue and green contours
-    blue_contour = max(blue_contours, key=cv2.contourArea) if blue_contours else None
+    pink_contour = max(blue_contours, key=cv2.contourArea) if blue_contours else None
     green_contour = max(green_contours, key=cv2.contourArea) if green_contours else None
 
-    if blue_contour is not None and green_contour is not None:
+    if pink_contour is not None and green_contour is not None:
         # Get the center points of blue and green rectangles
-        blue_moment = cv2.moments(blue_contour)
+        pink_moment = cv2.moments(pink_contour)
         green_moment = cv2.moments(green_contour)
 
-        if blue_moment["m00"] != 0 and green_moment["m00"] != 0:
-            blue_center = (int(blue_moment["m10"] / blue_moment["m00"]), int(blue_moment["m01"] / blue_moment["m00"]))
+        if pink_moment["m00"] != 0 and green_moment["m00"] != 0:
+            pink_center = (int(pink_moment["m10"] / pink_moment["m00"]), int(pink_moment["m01"] / pink_moment["m00"]))
             green_center = (
                 int(green_moment["m10"] / green_moment["m00"]), int(green_moment["m01"] / green_moment["m00"]))
 
             # Calculate the angle between the centers of blue and green rectangles
-            robot_angle = calculate_angle(blue_center, green_center)
+            robot_angle = calculate_angle(pink_center, green_center)
 
             # Draw a line connecting the centers of blue and green rectangles
-            draw_line(frame, blue_center, green_center, (0, 255, 0), thickness=2)
+            draw_line(frame, pink_center, green_center, (0, 255, 0), thickness=2)
 
             # Display the angle on the frame
             cv2.putText(frame, "Robot angle: {:.2f}".format(robot_angle), (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7,
@@ -174,7 +187,7 @@ while True:
         # Get rotated rectangle
         rect = cv2.minAreaRect(red_contour)
         box = cv2.boxPoints(rect)
-        box = np.int0(box)
+        box = np.intp(box)
 
         # Get length and width of the rectangle
         width_pixels = int(rect[1][0])
@@ -266,7 +279,7 @@ while True:
                         (0, 0, 255), 2)
 
             # Calculate and display angle between the two lines
-            ball_angle = calculate_angle_between_lines(blue_center, green_center, (cX, cY),
+            ball_angle = calculate_angle_between_lines(pink_center, green_center, (cX, cY),
                                                        closest_ball_center)
             cv2.putText(frame, f"Angle to ball: {ball_angle:.2f}", (10, 50), cv2.FONT_HERSHEY_SIMPLEX,
                         0.7, (255, 0, 0), 2)
