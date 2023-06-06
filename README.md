@@ -6,7 +6,7 @@ This project demonstrates a LEGO EV3 robot that can pick up balls and navigate o
 ## Features (as of 06-06-2023)
 
 1. LEGO EV3 robot with a conveyor belt mechanism to pick up balls.
-2. A server that sends instructions to the robot, such as "pick_balls" or "drive_straight".
+2. A server that sends instructions to the robot, such as `"pick_balls"` or `"drive_straight"`.
 3. Real-time ball detection using OpenCV.
    * Orange and white table tennis balls.
 4. Direction and position of robot using angle calculations.
@@ -14,7 +14,7 @@ This project demonstrates a LEGO EV3 robot that can pick up balls and navigate o
 6. Finding the ball closest to the robot.
 7. Direction and position of goals using angle calculations and distance calculation.
 8. A conversion factor which is calculated to convert pixel distances to real-world distances (in centimeters).
-   * Based on known size of the field
+   * Based on known size of the field.
 9. ??????????????????
 
 ## Requirements
@@ -23,12 +23,12 @@ This project demonstrates a LEGO EV3 robot that can pick up balls and navigate o
 - Python 3.x.
 - OpenCV 4.x.
 - Numpy.
-- Math
-- Flask (server)
-- requests (client) 
-- Enum (used to determine instructions)
-- A working camera connected to the computer/program running the "server"
-   * For Windows, remember to change the code to cap = cv2.VideoCapture(0) to cap = cv2.VideoCapture(1)
+- Math.
+- Flask (server).
+- requests (client).
+- Enum (used to determine instructions).
+- A working camera connected to the computer/program running the "server".
+   * For Windows, remember to change the code to `cap = cv2.VideoCapture(0)` to `cap = cv2.VideoCapture(1)`.
 
 ## Getting Started
 
