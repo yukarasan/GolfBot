@@ -1,8 +1,32 @@
 import cv2
 import numpy as np
 import math
+from flask import Flask, jsonify
+import threading
 
-cap = cv2.VideoCapture(1)
+from server.Logic.DetermineInstruction import Instructions, determineAngleToMove, determine_turn_direction, \
+    calculate_shortest_angle
+
+app = Flask(__name__)
+
+def flask_server():
+    app.run(port=8081)
+
+
+
+@app.route("/")
+def determineNextMove():
+    data = {"instruction": determine_turn_direction(angle_to_destination, angle_of_robot),
+            "value": "{:.2f}".format(abs(calculate_shortest_angle(angle_of_robot, angle_to_destination)))}
+
+    return jsonify(data)
+
+angle_to_destination = 0
+angle_of_robot = 0
+def flask_server():
+    app.run(host = "0.0.0.0", port=8081)
+
+cap = cv2.VideoCapture(0)
 
 # Range for green
 lower_green = np.array([30, 30, 30], dtype=np.uint8)
@@ -98,13 +122,17 @@ def draw_line_to_goals(image, start, end, color, thickness=2):
 # Initialize conversion factor
 conversion_factor = None
 
+# Create and start the Flask server in a separate thread
+flask_thread = threading.Thread(target=flask_server)
+flask_thread.start()
+
 while True:
     ret, frame = cap.read()
 
     if not ret:
         break
 
-    wall_thickness = 20
+    wall_thickness = 550
 
     frame_height, frame_width = frame.shape[:2]
 
@@ -131,6 +159,7 @@ while True:
     # Define lower and upper bounds for green color
     lower_green = np.array([40, 50, 50])
     upper_green = np.array([80, 255, 255])
+    green_center = (int(0), int(0))
 
     # Threshold the image to get only blue and green regions
     blue_mask = cv2.inRange(hsv, lower_pink, upper_pink)
@@ -153,11 +182,10 @@ while True:
 
         if pink_moment["m00"] != 0 and green_moment["m00"] != 0:
             pink_center = (int(pink_moment["m10"] / pink_moment["m00"]), int(pink_moment["m01"] / pink_moment["m00"]))
-            green_center = (
-                int(green_moment["m10"] / green_moment["m00"]), int(green_moment["m01"] / green_moment["m00"]))
+            green_center = (int(green_moment["m10"] / green_moment["m00"]), int(green_moment["m01"] / green_moment["m00"]))
 
             # Calculate the angle between the centers of blue and green rectangles
-            robot_angle = calculate_angle(pink_center, green_center)
+            angle_of_robot = robot_angle = calculate_angle(pink_center, green_center)
 
             # Draw a line connecting the centers of blue and green rectangles
             draw_line(frame, pink_center, green_center, (0, 255, 0), thickness=2)
@@ -218,8 +246,7 @@ while True:
         cX = int(M["m10"] / M["m00"])
         cY = int(M["m01"] / M["m00"])
         cv2.circle(frame, (cX, cY), 7, (255, 255, 255), -1)
-        cv2.putText(frame, f"centroid {cX}, {cY}", (cX - 20, cY - 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255),
-                    2)
+        cv2.putText(frame, f"centroid {cX}, {cY}", (cX - 20, cY - 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
 
         # Find white object and draw minimum enclosing circle
         contours_white, _ = cv2.findContours(mask_white, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -232,7 +259,7 @@ while True:
                 (x, y), radius = cv2.minEnclosingCircle(cnt)
                 center = (int(x), int(y))
                 radius = int(radius)
-                if radius > 8 and radius < 20:
+                if radius > 11 and radius < 20:
                     cv2.circle(frame, center, radius, (0, 255, 0), 2)
                     cv2.putText(frame, f"ball {center[0]}, {center[1]}", (center[0] - 20, center[1] - 20),
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
@@ -253,7 +280,7 @@ while True:
                 radius = int(radius)
 
                 # Draw the circle if it's big enough and track it
-                if radius > 8 and radius < 20:
+                if radius > 10 and radius < 20:
                     cv2.circle(frame, center, radius, (0, 165, 255), 2)  # use orange color for orange circle
                     prevOrangeCircle = center + (radius,)
                     # Orange ball:
@@ -285,7 +312,10 @@ while True:
                         (0, 0, 255), 2)
 
             # Calculate and display angle between the two lines
-            ball_angle = calculate_angle(green_center, closest_ball_center)
+
+            angle_to_destination = ball_angle = calculate_angle(green_center, closest_ball_center)
+
+
             cv2.putText(frame, f"Angle to ball: {ball_angle:.2f}", (10, 50), cv2.FONT_HERSHEY_SIMPLEX,
                         0.7, (255, 0, 0), 2)
 
@@ -302,16 +332,23 @@ while True:
         distance_to_left_goal = calculate_distance(green_center, goal_left)
         distance_to_right_goal = calculate_distance(green_center, goal_right)
 
+        goal_angle = None
         # Draw a line to the closest goal
         if distance_to_left_goal < distance_to_right_goal:
             draw_line_to_goals(frame, green_center, goal_left, (0, 255, 255), thickness=2)
+            goal_angle = calculate_angle(green_center, goal_left)
         else:
+            goal_angle = calculate_angle(green_center, goal_right)
             draw_line_to_goals(frame, green_center, goal_right, (0, 255, 255), thickness=2)
+
+        cv2.putText(frame, f"Angle to goal: {goal_angle:.2f}", (10, 70), cv2.FONT_HERSHEY_SIMPLEX,
+                        0.7, (255, 0, 0), 2)
 
 
     cv2.imshow('All Contours', frame)
 
     if cv2.waitKey(1) & 0xFF == ord('q'):
+        flask_thread.join()
         break
 
 cap.release()

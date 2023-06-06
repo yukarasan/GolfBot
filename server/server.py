@@ -1,14 +1,24 @@
 import socket
-from flask import Flask
+from flask import Flask, jsonify
 
+from Logic.DetermineInstruction import Instructions
 
 app=Flask(__name__)
 
 @app.route("/")
 def test():
-    return "hej"
+    data = {"instruction": Instructions.MOVE_RIGHT.value,
+            "value": 30}
 
-app.run(port=8081)
+    #Return the JSON response
+    return jsonify(data)
+
+
+def determineAngleToMove(angle_of_robot: float, angle_to_destination: float):
+    return angle_of_robot + angle_to_destination
+
+def startServer():
+    app.run(port=8081)
 
 
 def setUpSocketAndReturnIt():
@@ -58,5 +68,5 @@ def testOpenCVandSocket():
     server_socket.close()
 
 
-#if __name__ == "__main__":
- #   testOpenCVandSocket()
+if __name__ == "__main__":
+    startServer()
