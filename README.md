@@ -28,7 +28,7 @@ This project demonstrates a LEGO EV3 robot that can pick up balls and navigate o
 - requests (client).
 - Enum (used to determine instructions).
 - A working camera connected to the computer/program running the "server".
-   * For Windows, remember to change the code to `cap = cv2.VideoCapture(0)` to `cap = cv2.VideoCapture(1)`.
+   * For Windows, remember to change the code: `cap = cv2.VideoCapture(0)` to `cap = cv2.VideoCapture(1)`.
 
 ## Getting Started
 
