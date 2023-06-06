@@ -17,12 +17,14 @@ def flask_server():
 @app.route("/")
 def determineNextMove():
     data = {"instruction": determine_turn_direction(angle_to_destination, angle_of_robot),
-            "value": "{:.2f}".format(abs(calculate_shortest_angle(angle_of_robot, angle_to_destination)))}
-
+            "value": abs(calculate_shortest_angle(angle_of_robot, angle_to_destination)),
+            "distance": goal_distance}
     return jsonify(data)
 
 angle_to_destination = 0
 angle_of_robot = 0
+goal_distance = 0
+
 def flask_server():
     app.run(host = "0.0.0.0", port=8081)
 
@@ -307,12 +309,12 @@ while True:
             cv2.line(frame, (cX, cY), closest_ball_center, (0, 0, 255), 2)
 
             # Convert pixel distance to cm and display it on the frame
-            distance_cm = min_distance * conversion_factor
+
+            goal_distance = distance_cm = min_distance * conversion_factor
             cv2.putText(frame, f"Distance: {distance_cm:.2f} cm", (cX - 20, cY - 40), cv2.FONT_HERSHEY_SIMPLEX, 0.5,
                         (0, 0, 255), 2)
 
             # Calculate and display angle between the two lines
-
             angle_to_destination = ball_angle = calculate_angle(green_center, closest_ball_center)
 
 

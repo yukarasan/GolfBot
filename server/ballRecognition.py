@@ -4,11 +4,6 @@ import numpy as np
 videoCapture = cv.VideoCapture(0)
 prevCircle = None
 
-# RGB color of the unwanted edge color
-unwanted_color_rgb = np.uint8([[[234, 66, 40]]])
-unwanted_color_hsv = cv.cvtColor(unwanted_color_rgb, cv.COLOR_RGB2HSV)
-print("Unwanted color (HSV):", unwanted_color_hsv)
-
 while True:
     ret, frame = videoCapture.read()
     if not ret:
@@ -25,8 +20,8 @@ while True:
     mask_white = cv.inRange(hsv, lower_white, upper_white)
 
     # Define range of orange color in HSV
-    lower_orange = np.array([14, 100, 100])
-    upper_orange = np.array([34, 255, 255])
+    lower_orange = np.array([20, 100, 100])
+    upper_orange = np.array([30, 255, 255])
 
     # Threshold the HSV image to get only orange colors
     mask_orange = cv.inRange(hsv, lower_orange, upper_orange)
@@ -34,14 +29,12 @@ while True:
     # Combine the masks
     mask = cv.bitwise_or(mask_white, mask_orange)
 
-    # Exclude the unwanted color from the mask
-    unwanted_mask = cv.inRange(hsv, unwanted_color_hsv, unwanted_color_hsv)
-    mask = cv.bitwise_and(mask, cv.bitwise_not(unwanted_mask))
-
     # Apply some morphological operations to the mask to remove noise
     kernel = np.ones((5, 5), np.uint8)
     mask = cv.erode(mask, kernel, iterations=1)
     mask = cv.dilate(mask, kernel, iterations=1)
+
+    cv.imshow('last mask', mask)
 
     # Find contours in the mask and loop over them
     contours, _ = cv.findContours(mask, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
