@@ -17,7 +17,7 @@ def flask_server():
 @app.route("/")
 def determineNextMove():
     data = {"instruction": determine_turn_direction(angle_to_destination, angle_of_robot),
-            "angle": "{:.2f}".format(abs(calculate_shortest_angle(angle_of_robot, angle_to_destination))),
+            "angle": "{:.2f}".format(calculate_shortest_angle(angle_of_robot, angle_to_destination)),
             "distance": "{:.2f}".format(goal_distance)}
     return jsonify(data)
 
