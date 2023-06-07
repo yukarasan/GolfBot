@@ -1,24 +1,27 @@
 #!/usr/bin/env pybricks-micropython
-import requests
+from http.client import HTTPConnection
+from urllib.parse import urlparse
+from pybricks.hubs import EV3Brick
+from pybricks.ev3devices import Motor, DriveBase
+from pybricks.tools import wait
+from server.Logic.DetermineInstruction import Instructions
+
+#!/usr/bin/env pybricks-micropython
 from pybricks.hubs import EV3Brick
 from pybricks.ev3devices import (Motor, TouchSensor, ColorSensor,
                                  InfraredSensor, UltrasonicSensor, GyroSensor)
 from pybricks.parameters import Port, Stop, Direction, Button, Color
 from pybricks.tools import wait, StopWatch, DataLog
-from pybricks.robotics import DriveBase
-from pybricks.media.ev3dev import SoundFile, ImageFile
 
 from threading import Thread
 from server.Logic.DetermineInstruction import Instructions
 
 
-# This program requires LEGO EV3 MicroPython v2.0 or higher.
 def main():
     # Objects and setup
     ev3 = EV3Brick()
     left_wheel = Motor(Port.C)
     right_wheel = Motor(Port.B)
-    conveyor = Motor(Port.D)
 
     # Wheel diameter and axle track (in millimeters)
     wheel_diameter = 56
@@ -27,24 +30,28 @@ def main():
     # DriveBase object
     robot = DriveBase(left_wheel, right_wheel, wheel_diameter, axle_track)
 
-    # Soundfile object to play the winning sound when the robot reaches the end
-    winning_sound = SoundFile.FANFARE
-    # ImageFile object to display the winning image when the robot reaches the end
-    winning_image = ImageFile.THUMBS_UP
+    # IP to the server
+    server_url = "http://10.209.234.177:8081/"
 
-    # Ip to the server
-    ip = "http://10.209.234.177:8081/"
     while True:
         try:
-            response = requests.get(ip)
-            if response.status_code == 200:
-                json_data = response.json()
+            response = make_get_request(server_url)
+            if response.status == 200:
+                json_data = response.read()
                 process_instruction(robot=robot, instruction=json_data)
             else:
                 print('Request failed.')
 
         except Exception as e:
             print(e)
+
+
+def make_get_request(url):
+    parsed_url = urlparse(url)
+    connection = HTTPConnection(parsed_url.netloc)
+    connection.request("GET", parsed_url.path)
+    response = connection.getresponse()
+    return response
 
 
 def process_instruction(robot: DriveBase, instruction):
@@ -75,24 +82,6 @@ def move(robot: DriveBase, distance, robot_front_length):
     while robot.is_running():
         wait(10)
 
-
-def stop(robot: DriveBase):
-    robot.stop()
-
-
-def play_winning_sound(ev3: EV3Brick, soundfile):
-    try:
-        ev3.speaker.set_volume(100)
-        ev3.speaker.play_file(soundfile)
-    except Exception as e:
-        print(f"Failed to play sound: {soundfile}. Error: {e}")
-
-
-def display_winning_image(ev3: EV3Brick, imagefile):
-    try:
-        ev3.screen.load_image(imagefile)
-    except Exception as e:
-        print(f"Failed to display image: {imagefile}. Error: {e}")
 
 if __name__ == "__main__":
     main()
