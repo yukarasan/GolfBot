@@ -28,7 +28,7 @@ def determine_turn_direction(angle1, angle2):
     shortest_angle = calculate_shortest_angle(angle1, angle2)
 
     if abs(shortest_angle) <= 5:
-        return Instructions.MOVE_FORWARD
+        return Instructions.MOVE_FORWARD.value
     if shortest_angle < 0:
         return Instructions.MOVE_RIGHT.value
     elif shortest_angle > 0:
