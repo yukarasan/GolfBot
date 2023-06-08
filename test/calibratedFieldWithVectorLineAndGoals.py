@@ -5,7 +5,7 @@ from flask import Flask, jsonify
 import threading
 
 from server.Logic.DetermineInstruction import Instructions, determineAngleToMove, determine_turn_direction, \
-    calculate_shortest_angle
+    calculate_shortest_angle, determine_goal_instruction
 
 app = Flask(__name__)
 
@@ -16,14 +16,32 @@ def flask_server():
 
 @app.route("/")
 def determineNextMove():
-    data = {"instruction": determine_turn_direction(angle_to_destination, angle_of_robot),
-            "angle": "{:.2f}".format(calculate_shortest_angle(angle_of_robot, angle_to_destination)),
-            "distance": "{:.2f}".format(goal_distance)}
+
+    #if nuværende antalBolde == 5 || antal == 0 --> gå til goal, else --> gå til nærmeste bold
+    if num_balls_white + num_balls_orange == 5 or num_balls_white + num_balls_orange == 0:
+        data = {"instruction": determine_goal_instruction(angle_to_goal, angle_of_robot, abs(goal_distance - 10.0)),
+                "angle": "{:.2f}".format(calculate_shortest_angle(angle_of_robot, angle_to_goal)),
+                "distance": "{:.2f}".format(goal_distance - 10.0)}
+    else:
+        data = {"instruction": determine_turn_direction(angle_to_ball, angle_of_robot),
+            "angle": "{:.2f}".format(calculate_shortest_angle(angle_of_robot, angle_to_ball)),
+            "distance": "{:.2f}".format(ball_distance)}
+
     return jsonify(data)
 
-angle_to_destination = 0
+
+
+angle_to_ball = 0
 angle_of_robot = 0
+ball_distance = 0
+
+angle_to_goal = 0
 goal_distance = 0
+
+num_balls_white = 0
+num_balls_orange = 0
+
+
 
 def flask_server():
     app.run(host = "0.0.0.0", port=8081)
@@ -230,8 +248,8 @@ while True:
         height_pixels = int(rect[1][1])
 
         # Calculate conversion factors
-        conversion_factor_length = 180 / max(width_pixels, height_pixels)  # Considering length as the max dimension
-        conversion_factor_width = 120 / min(width_pixels, height_pixels)  # Considering width as the min dimension
+        conversion_factor_length = 182 / max(width_pixels, height_pixels)  # Considering length as the max dimension
+        conversion_factor_width = 132 / min(width_pixels, height_pixels)  # Considering width as the min dimension
 
         # Take average of both conversion factors
         conversion_factor = (conversion_factor_length + conversion_factor_width) / 2
@@ -256,9 +274,12 @@ while True:
         min_distance_orange = np.inf
         closest_ball_center = None
 
+        num_balls_white = 0
         for cnt in contours_white:
             if cnt.shape[0] > 5:
                 (x, y), radius = cv2.minEnclosingCircle(cnt)
+                num_balls_white += 1
+
                 center = (int(x), int(y))
                 radius = int(radius)
                 if radius > 11 and radius < 20:
@@ -274,12 +295,14 @@ while True:
                         min_distance = pixel_distance
                         closest_ball_center = center
 
+        num_balls_orange = 0
         for cnt in contours_orange:
             # Fit a circle to the contour if it has enough points
             if cnt.shape[0] > 5:
                 (x, y), radius = cv2.minEnclosingCircle(cnt)
                 center = (int(x), int(y))
                 radius = int(radius)
+                num_balls_orange += 1
 
                 # Draw the circle if it's big enough and track it
                 if radius > 10 and radius < 20:
@@ -310,12 +333,12 @@ while True:
 
             # Convert pixel distance to cm and display it on the frame
 
-            goal_distance = distance_cm = min_distance * conversion_factor
+            ball_distance = distance_cm = min_distance * conversion_factor
             cv2.putText(frame, f"Distance: {distance_cm:.2f} cm", (cX - 20, cY - 40), cv2.FONT_HERSHEY_SIMPLEX, 0.5,
                         (0, 0, 255), 2)
 
             # Calculate and display angle between the two lines
-            angle_to_destination = ball_angle = calculate_angle(green_center, closest_ball_center)
+            angle_to_ball = ball_angle = calculate_angle(green_center, closest_ball_center)
 
 
             cv2.putText(frame, f"Angle to ball: {ball_angle:.2f}", (10, 50), cv2.FONT_HERSHEY_SIMPLEX,
@@ -331,20 +354,24 @@ while True:
         cv2.circle(frame, goal_right, radius=8, color=(0, 255, 255), thickness=-2)  # Yellow dot
 
         # Calculate distances to the goals
-        distance_to_left_goal = calculate_distance(green_center, goal_left)
-        distance_to_right_goal = calculate_distance(green_center, goal_right)
+        distance_to_left_goal = calculate_distance(green_center, goal_left) * conversion_factor
+        distance_to_right_goal = calculate_distance(green_center, goal_right) * conversion_factor
 
         goal_angle = None
         # Draw a line to the closest goal
         if distance_to_left_goal < distance_to_right_goal:
             draw_line_to_goals(frame, green_center, goal_left, (0, 255, 255), thickness=2)
-            goal_angle = calculate_angle(green_center, goal_left)
+            goal_distance = distance_to_left_goal
+            angle_to_goal = goal_angle = calculate_angle(green_center, goal_left)
         else:
-            goal_angle = calculate_angle(green_center, goal_right)
+            angle_to_goal = goal_angle = calculate_angle(green_center, goal_right)
+            goal_distance = distance_to_right_goal
             draw_line_to_goals(frame, green_center, goal_right, (0, 255, 255), thickness=2)
 
         cv2.putText(frame, f"Angle to goal: {goal_angle:.2f}", (10, 70), cv2.FONT_HERSHEY_SIMPLEX,
                         0.7, (255, 0, 0), 2)
+        cv2.putText(frame, f"distance to goal: {goal_distance:.2f}", (10, 90), cv2.FONT_HERSHEY_SIMPLEX,
+                    0.7, (255, 0, 0), 2)
 
 
     cv2.imshow('All Contours', frame)
