@@ -1,11 +1,12 @@
 import cv2
 import numpy as np
 
-# Constants
-DISTANCE_THRESHOLD = 2  # Distance threshold for stopping in cm
+global top_left, top_right, bottom_right, bottom_left
 
 
 def draw_rect_and_center(image, contour):
+    global top_left, top_right, bottom_right, bottom_left
+
     # Calculate the bounding rectangle around the contour
     x, y, width, height = cv2.boundingRect(contour)
 
@@ -13,16 +14,22 @@ def draw_rect_and_center(image, contour):
     center_x = int(x + width / 2)
     center_y = int(y + height / 2)
 
+    # Set global values
+    top_left = (x - 20, y - 20)
+    top_right = (x + width + 20, y - 20)
+    bottom_right = (x + width + 20, y + height + 20)
+    bottom_left = (x - 20, y + height + 20)
+
     # Draw the bounding rectangle
-    cv2.rectangle(image, (x - 20, y - 20), (x + width + 20, y + height + 20), (0, 0, 255), 2)
+    cv2.rectangle(image, top_left, bottom_right, (0, 0, 255), 2)
 
     # Draw a circle to represent the center of the bounding rectangle
     cv2.circle(image, (center_x, center_y), 3, (0, 255, 0), -1)
 
 
-def find_quadrant(ball_coordinate, center_coordinate):
-    x_new = ball_coordinate[0] - center_coordinate[0]
-    y_new = ball_coordinate[1] - center_coordinate[1]
+def find_quadrant(obj_coordinate, center_coordinate):
+    x_new = obj_coordinate[0] - center_coordinate[0]
+    y_new = obj_coordinate[1] - center_coordinate[1]
 
     if x_new > 0 and y_new > 0:
         return 1
@@ -34,6 +41,38 @@ def find_quadrant(ball_coordinate, center_coordinate):
         return 4
 
 
+def get_closest_corner(robot_coordinate):
+    distances = []
+    corners = [top_left, top_right, bottom_right, bottom_left]
+
+    for corner in corners:
+        # Calculate the Euclidean distance between the robot coordinate and each corner
+        distance = ((corner[0] - robot_coordinate[0]) ** 2 + (corner[1] - robot_coordinate[1]) ** 2) ** 0.5
+        distances.append(distance)
+
+    # Find the index of the minimum distance
+    closest_corner_index = distances.index(min(distances))
+
+    # Return the closest corner
+    return corners[closest_corner_index]
+
+
+# skal måske ændres ift hvordan koordinaterne er for framen.
+def go_around(robot, ball, center):
+    robot_q = find_quadrant(robot, center)
+    ball_q = find_quadrant(ball, center)
+
+    if abs(robot_q - ball_q) == 2:
+        print('gå til nærmeste')
+        dest = get_closest_corner(robot)
+        return
+    else:
+        print('gå til boldkvadrant')
+        dest = ball
+
+    # move to dest
+
+
 def is_robot_close_to_obstacle(robot_contour, square_contour):
     # Check for intersection between the robot contour and the square contour
     intersection = cv2.bitwise_and(robot_contour, square_contour)
@@ -43,9 +82,6 @@ def is_robot_close_to_obstacle(robot_contour, square_contour):
 
     # Return True if the robot is touching the square contour
     return is_close
-
-
-# lav funktion til at gå hen til bold koordinat rundt om forhindring.
 
 
 def detect_obstacle(image):
@@ -97,7 +133,7 @@ def detect_obstacle(image):
 sample_image = cv2.imread('C:/Users/mathi/PycharmProjects/GolfBot/images/testimage1.jpg')
 
 # Resize the image to fit the screen
-scale_percent = 50  # Adjust the scale factor as needed
+scale_percent = 30  # Adjust the scale factor as needed
 width = int(sample_image.shape[1] * scale_percent / 100)
 height = int(sample_image.shape[0] * scale_percent / 100)
 resized_image = cv2.resize(sample_image, (width, height))
