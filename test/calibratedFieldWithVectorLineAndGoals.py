@@ -57,8 +57,16 @@ lower_white = np.array([0, 0, 200])
 upper_white = np.array([180, 30, 255])
 
 # Range for red
-red_lower = np.array([0, 100, 100])
-red_upper = np.array([10, 255, 255])
+# red_lower = np.array([0, 100, 100])
+# red_upper = np.array([10, 255, 255])
+rgb_color = np.uint8([[[199, 54, 52 ]]]) # given RGB color
+hsv_color = cv2.cvtColor(rgb_color, cv2.COLOR_RGB2HSV)
+
+# assuming hsv_color is the color converted into HSV
+h, s, v = hsv_color[0][0]
+red_lower = np.array([h - 10, 100, 100])
+red_upper = np.array([h + 10, 255, 255])
+
 
 # Define lower and upper bounds for orange color
 lower_orange = np.array([20, 100, 100])
