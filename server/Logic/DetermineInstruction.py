@@ -28,6 +28,8 @@ def calculate_shortest_angle(angle1, angle2):
 def determine_turn_direction(angle1, angle2):
     shortest_angle = calculate_shortest_angle(angle1, angle2)
 
+    ##if vi er tæt på, så må vinklen godt være større
+    ##if vi er meget tæt på, og vinklen er stor, så go backwards
     if abs(shortest_angle) <= 2.5:
         return Instructions.MOVE_FORWARD.value
     if shortest_angle < 0:
@@ -39,7 +41,7 @@ def determine_turn_direction(angle1, angle2):
 def determine_goal_instruction(angle1, angle2, distance):
     shortest_angle = calculate_shortest_angle(angle1, angle2)
 
-    if distance <= 25 and abs(shortest_angle) <= 30:
+    if distance <= 5 and abs(shortest_angle) <= 3.5:
         return Instructions.SHOOT.value
     else: return determine_turn_direction(angle1, angle2)
 
