@@ -7,25 +7,34 @@ global top_left, top_right, bottom_right, bottom_left
 def draw_rect_and_center(image, contour):
     global top_left, top_right, bottom_right, bottom_left
 
-    # Calculate the bounding rectangle around the contour
-    x, y, width, height = cv2.boundingRect(contour)
+    # Find the minimum bounding rectangle that encloses the contour
+    rect = cv2.minAreaRect(contour)
+    box = cv2.boxPoints(rect)
+    box = np.int0(box)
 
     # Calculate the center of the bounding rectangle
-    center_x = int(x + width / 2)
-    center_y = int(y + height / 2)
+    center_x = int(rect[0][0])
+    center_y = int(rect[0][1])
 
-    # Set global values
-    top_left = (x - 20, y - 20)
-    top_right = (x + width + 20, y - 20)
-    bottom_right = (x + width + 20, y + height + 20)
-    bottom_left = (x - 20, y + height + 20)
+    # Calculate the rotation angle and scale factor
+    angle = 45
+    scale_factor = 1.8
 
-    # Draw the bounding rectangle
-    cv2.rectangle(image, top_left, bottom_right, (0, 0, 255), 2)
+    # Rotate and scale the bounding rectangle
+    rotation_matrix = cv2.getRotationMatrix2D((center_x, center_y), angle, scale_factor)
+    rotated_box = cv2.transform(np.array([box]), rotation_matrix)[0]
+
+    # Get the corner points of the rotated and scaled rectangle
+    top_left = tuple(rotated_box[1])
+    top_right = tuple(rotated_box[2])
+    bottom_right = tuple(rotated_box[3])
+    bottom_left = tuple(rotated_box[0])
+
+    # Draw the rotated and scaled bounding rectangle
+    cv2.drawContours(image, [rotated_box], 0, (0, 0, 255), 2)
 
     # Draw a circle to represent the center of the bounding rectangle
     cv2.circle(image, (center_x, center_y), 3, (0, 255, 0), -1)
-
 
 def find_quadrant(obj_coordinate, center_coordinate):
     x_new = obj_coordinate[0] - center_coordinate[0]

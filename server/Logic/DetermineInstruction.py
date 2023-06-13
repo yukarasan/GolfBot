@@ -51,3 +51,4 @@ def determineAngleToMove(angle_of_robot: float, angle_to_destination: float):
         return abs(angle_of_robot) + abs(angle_to_destination)
 
     return abs(abs(angle_of_robot) - abs(angle_to_destination))
+
