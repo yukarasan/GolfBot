@@ -292,7 +292,7 @@ while True:
 
                 center = (int(x), int(y))
                 radius = int(radius)
-                if radius > 11 and radius < 25 and x >= goal_left[x] - 12 and x <= goal_right[0] + 12:
+                if radius > 11 and radius < 25 and x >= goal_left[0] - 12 and x <= goal_right[0] + 12:
                     num_balls_white += 1
                     cv2.circle(frame, center, radius, (0, 255, 0), 2)
                     cv2.putText(frame, f"ball {center[0]}, {center[1]}", (center[0] - 20, center[1] - 20),
@@ -318,7 +318,7 @@ while True:
                 radius = int(radius)
 
                 # Draw the circle if it's big enough and track it
-                if radius > 13.5 and radius < 18 and x >= goal_left[x] - 12 and x <= goal_right[0] + 12:
+                if radius > 13.5 and radius < 18 and x >= goal_left[0] - 12 and x <= goal_right[0] + 12:
                     num_balls_orange += 1
                     cv2.circle(frame, center, radius, (0, 165, 255), 2)  # use orange color for orange circle
                     prevOrangeCircle = center + (radius,)
