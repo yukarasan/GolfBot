@@ -17,9 +17,9 @@ def flask_server():
 def determineNextMove():
     # if nuværende antalBolde == 5 || antal == 0 --> gå til goal, else --> gå til nærmeste bold
     if num_balls_white + num_balls_orange == 5 or num_balls_white + num_balls_orange == 0:
-        data = {"instruction": determine_goal_instruction(angle_to_goal, angle_of_robot, abs(goal_distance - 20.0)),
+        data = {"instruction": determine_goal_instruction(angle_to_goal, angle_of_robot, goal_distance),
                 "angle": "{:.2f}".format(calculate_shortest_angle(angle_of_robot, angle_to_goal)),
-                "distance": "{:.2f}".format(goal_distance - 20.0),
+                "distance": "{:.2f}".format(goal_distance),
                 "0 balls=": "yes"
                 }
     else:
@@ -155,7 +155,6 @@ flask_thread = threading.Thread(target=flask_server)
 flask_thread.start()
 
 while True:
-    print(num_balls_white, num_balls_orange)
     ret, frame = cap.read()
 
     if not ret:
@@ -293,7 +292,7 @@ while True:
 
                 center = (int(x), int(y))
                 radius = int(radius)
-                if radius > 11 and radius < 25:
+                if radius > 11 and radius < 25 and x >= goal_left[0] - 12 and x <= goal_right[0] + 12:
                     num_balls_white += 1
                     cv2.circle(frame, center, radius, (0, 255, 0), 2)
                     cv2.putText(frame, f"ball {center[0]}, {center[1]}", (center[0] - 20, center[1] - 20),
