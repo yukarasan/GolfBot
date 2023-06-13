@@ -39,7 +39,7 @@ class SpinnerThread(Thread):
 
     def run(self):
         while self.running:
-            self.spinner.run(1000)  # Run the spinner
+            self.spinner.run(300)  # Run the spinner
             time.sleep(0.1)  # Sleep for a short while to not hog the CPU
 
     def stop(self):
@@ -56,7 +56,7 @@ def main():
     left_wheel = Motor(Port.A)
     right_wheel = Motor(Port.B)
     conveyor = Motor(Port.D)
-    # spinner = Motor(Port.C)
+    spinner = Motor(Port.C)
 
     # Wheel diameter and axle track (in millimeters)
     wheel_diameter = 56
@@ -77,8 +77,8 @@ def main():
     conveyor_thread.start()
 
     # Start the spinner thread
-    # spinner_thread = SpinnerThread(spinner)
-    # spinner_thread.start()
+    spinner_thread = SpinnerThread(spinner)
+    spinner_thread.start()
 
     while True:
         # Socket connection setup
@@ -118,13 +118,13 @@ def main():
             sock.close()
 
 
-def process_instruction(robot: DriveBase, instruction, conveyor: Motor, conveyor_thread: ConveyorThread):
+def process_instruction(robot: DriveBase, instruction, conveyor: Motor, conveyor_thread: ConveyorThread, spinner_thread: SpinnerThread):
     if instruction["instruction"] == "Left":
         angle = float(instruction["angle"])
         distance = float(instruction["distance"])
 
         # If the distance is under 15, move backwards instead
-        if distance < 15:
+        if distance < 0 and abs(angle) > 80:
             move(robot=robot, distance=-distance)
 
         # Turn the robot left
@@ -134,20 +134,21 @@ def process_instruction(robot: DriveBase, instruction, conveyor: Motor, conveyor
         distance = float(instruction["distance"])
 
         # If the distance is under 15, move backwards instead
-        if distance < 15:
+        if distance < 0 and abs(angle) > 80:
             move(robot=robot, distance=-distance)
 
         # Turn the robot right
         turn(robot=robot, angle=angle)
     elif instruction["instruction"] == "Forward":
         distance = float(instruction["distance"])
+        angle = float(instruction["angle"])
 
         # If the distance is under 15, move backwards instead
-        if distance < 15:
+        if distance < 0 and abs(angle) > 80:
             move(robot=robot, distance=-distance)
 
-        # If the distance is over 25, move half the distance twice
-        if distance > 25:
+        # If the distance is over 25, move half the distance
+        if distance > 35:
             move(robot=robot, distance=distance / 2)
         else:
             move(robot=robot, distance=distance)
@@ -156,7 +157,7 @@ def process_instruction(robot: DriveBase, instruction, conveyor: Motor, conveyor
         release_conveyor(conveyor=conveyor)  # Release the conveyor belt
         time.sleep(10)  # Wait for 10 seconds
         conveyor_thread.stop_conveyor()  # Stop the conveyor belt
-        # spinner_thread.stop_spinner()  # Stop the spinner
+        spinner_thread.stop_spinner()  # Stop the spinner
 
 
 def turn(robot: DriveBase, angle):
@@ -175,7 +176,6 @@ def move(robot: DriveBase, distance):
 
 def stop(robot: DriveBase):
     robot.stop()
-
 
 # Run conveyor function to be started on a separate thread
 def run_conveyor(conveyor: Motor):
