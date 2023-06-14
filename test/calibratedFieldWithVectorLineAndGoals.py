@@ -74,8 +74,8 @@ red_upper = np.array([10, 255, 255])
 #red_upper = np.array([h + 10, 255, 255])
 
 # Define lower and upper bounds for orange color
-lower_orange = np.array([20, 100, 100])
-upper_orange = np.array([30, 255, 255])
+lower_orange = np.array([25, 50, 20])
+upper_orange = np.array([32, 110, 255])
 
 kernel = np.ones((5, 5), np.uint8)
 
@@ -198,17 +198,17 @@ while True:
     green_center = (int(0), int(0))
 
     # Threshold the image to get only blue and green regions
-    blue_mask = cv2.inRange(hsv, lower_pink, upper_pink)
+    pink_mask = cv2.inRange(hsv, lower_pink, upper_pink)
     green_mask = cv2.inRange(hsv, lower_green, upper_green)
 
     mask_orange = cv2.inRange(hsv, lower_orange, upper_orange)
 
     # Find contours for blue and green regions
-    blue_contours, _ = cv2.findContours(blue_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    pink_contours, _ = cv2.findContours(pink_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     green_contours, _ = cv2.findContours(green_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
     # Find the largest blue and green contours
-    pink_contour = max(blue_contours, key=cv2.contourArea) if blue_contours else None
+    pink_contour = max(pink_contours, key=cv2.contourArea) if pink_contours else None
     green_contour = max(green_contours, key=cv2.contourArea) if green_contours else None
 
     if pink_contour is not None and green_contour is not None:
@@ -271,14 +271,14 @@ while True:
         conversion_factor = (conversion_factor_length + conversion_factor_width) / 2
 
     # Find green object centroid
-    contours_green, _ = cv2.findContours(mask_green, cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE)
-    contours_green = sorted(contours_green, key=cv2.contourArea, reverse=True)
+    contours_pink, _ = cv2.findContours(pink_mask, cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE)
+    contours_pink = sorted(contours_pink, key=cv2.contourArea, reverse=True)
     contours_orange, _ = cv2.findContours(mask_orange, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
     #cv2.imshow('orange count', mask_red)
 
-    if contours_green:
-        M = cv2.moments(contours_green[0])
+    if contours_pink:
+        M = cv2.moments(contours_pink[0])
         cX = int(M["m10"] / M["m00"])
         cY = int(M["m01"] / M["m00"])
         cv2.circle(frame, (cX, cY), 7, (255, 255, 255), -1)
@@ -300,7 +300,7 @@ while True:
 
                 center = (int(x), int(y))
                 radius = int(radius)
-                if radius > 13 and radius < 25 and x >= goal_left[0] - 12 and x <= goal_right[0] + 12:
+                if radius > 14.5 and radius < 17.6 and x >= goal_left[0] - 12 and x <= goal_right[0] + 12:
                     num_balls_white += 1
                     cv2.circle(frame, center, radius, (0, 255, 0), 2)
                     cv2.putText(frame, f"ball {center[0]}, {center[1]}", (center[0] - 20, center[1] - 20),
@@ -359,7 +359,7 @@ while True:
                         (0, 0, 255), 2)
 
             # Calculate and display angle between the two lines
-            angle_to_ball = ball_angle = calculate_angle(green_center, closest_ball_center)
+            angle_to_ball = ball_angle = calculate_angle(pink_center, closest_ball_center)
 
             cv2.putText(frame, f"Angle to ball: {ball_angle:.2f}", (10, 50), cv2.FONT_HERSHEY_SIMPLEX,
                         0.7, (255, 0, 0), 2)
@@ -374,27 +374,27 @@ while True:
         cv2.circle(frame, goal_point_right, radius=8, color=(0, 255, 255), thickness=-2)  # Yellow dot
 
         # Calculate distances to the goals
-        distance_to_left_goal = calculate_distance(green_center, goal_left) * conversion_factor
-        distance_to_right_goal = calculate_distance(green_center, goal_right) * conversion_factor
+        distance_to_left_goal = calculate_distance(pink_center, goal_left) * conversion_factor
+        distance_to_right_goal = calculate_distance(pink_center, goal_right) * conversion_factor
 
-        distance_to_left_goal_point = calculate_distance(green_center, goal_point_left) * conversion_factor
-        distance_to_right_goal_point = calculate_distance(green_center, goal_point_right) * conversion_factor
+        distance_to_left_goal_point = calculate_distance(pink_center, goal_point_left) * conversion_factor
+        distance_to_right_goal_point = calculate_distance(pink_center, goal_point_right) * conversion_factor
 
         goal_angle = None
         # Draw a line to the closest goal
         if distance_to_left_goal < distance_to_right_goal:
-            angle_to_goal = goal_angle = calculate_angle(green_center, goal_left)
+            angle_to_goal = goal_angle = calculate_angle(pink_center, goal_left)
             goal_distance = distance_to_left_goal
-            draw_line_to_goals(frame, green_center, goal_left, (0, 255, 255), thickness=2)
+            draw_line_to_goals(frame, pink_center, goal_left, (0, 255, 255), thickness=2)
 
-            goal_point_angle = calculate_angle(green_center, goal_point_left)
+            goal_point_angle = calculate_angle(pink_center, goal_point_left)
             goal_point_distance = distance_to_left_goal_point
         else:
-            angle_to_goal = goal_angle = calculate_angle(green_center, goal_right)
+            angle_to_goal = goal_angle = calculate_angle(pink_center, goal_right)
             goal_distance = distance_to_right_goal
-            draw_line_to_goals(frame, green_center, goal_right, (0, 255, 255), thickness=2)
+            draw_line_to_goals(frame, pink_center, goal_right, (0, 255, 255), thickness=2)
 
-            goal_point_angle = calculate_angle(green_center, goal_point_right)
+            goal_point_angle = calculate_angle(pink_center, goal_point_right)
             goal_point_distance = distance_to_right_goal_point
 
         cv2.putText(frame, f"Angle to goal: {goal_angle:.2f}", (10, 70), cv2.FONT_HERSHEY_SIMPLEX,
