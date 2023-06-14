@@ -4,7 +4,7 @@ import math
 from flask import Flask, jsonify
 import threading
 
-from server.Logic.DetermineInstruction import Instructions, determineAngleToMove, determine_turn_direction, \
+from server.Logic.DetermineInstruction import determine_turn_direction, \
     calculate_shortest_angle, determine_goal_instruction
 
 app = Flask(__name__)
@@ -13,22 +13,23 @@ def flask_server():
     app.run(port=8081)
 
 
-
 @app.route("/")
 def determineNextMove():
-
-    #if nuværende antalBolde == 5 || antal == 0 --> gå til goal, else --> gå til nærmeste bold
+    # if nuværende antalBolde == 5 || antal == 0 --> gå til goal, else --> gå til nærmeste bold
     if num_balls_white + num_balls_orange == 5 or num_balls_white + num_balls_orange == 0:
-        data = {"instruction": determine_goal_instruction(angle_to_goal, angle_of_robot, abs(goal_distance - 10.0)),
+        data = {"instruction": determine_goal_instruction(angle_to_goal, angle_of_robot, goal_distance),
                 "angle": "{:.2f}".format(calculate_shortest_angle(angle_of_robot, angle_to_goal)),
-                "distance": "{:.2f}".format(goal_distance - 10.0)}
+                "distance": "{:.2f}".format(goal_distance),
+                "0 balls=": "yes"
+                }
     else:
         data = {"instruction": determine_turn_direction(angle_to_ball, angle_of_robot),
-            "angle": "{:.2f}".format(calculate_shortest_angle(angle_of_robot, angle_to_ball)),
-            "distance": "{:.2f}".format(ball_distance)}
+                "angle": "{:.2f}".format(calculate_shortest_angle(angle_of_robot, angle_to_ball)),
+                "distance": "{:.2f}".format(ball_distance),
+                "0 balls=": "no"
+                }
 
     return jsonify(data)
-
 
 
 angle_to_ball = 0
@@ -38,13 +39,13 @@ ball_distance = 0
 angle_to_goal = 0
 goal_distance = 0
 
-num_balls_white = 0
-num_balls_orange = 0
-
+num_balls_white = None
+num_balls_orange = None
 
 
 def flask_server():
-    app.run(host = "0.0.0.0", port=8081)
+    app.run(host="0.0.0.0", port=8081)
+
 
 cap = cv2.VideoCapture(0)
 
@@ -56,17 +57,16 @@ upper_green = np.array([80, 255, 255], dtype=np.uint8)
 lower_white = np.array([0, 0, 200])
 upper_white = np.array([180, 30, 255])
 
-# Range for red
-# red_lower = np.array([0, 100, 100])
-# red_upper = np.array([10, 255, 255])
-rgb_color = np.uint8([[[199, 54, 52 ]]]) # given RGB color
-hsv_color = cv2.cvtColor(rgb_color, cv2.COLOR_RGB2HSV)
+#Range for red
+red_lower = np.array([0, 100, 100])
+red_upper = np.array([10, 255, 255])
+#rgb_color = np.uint8([[[199, 54, 52 ]]]) # given RGB color
+#hsv_color = cv2.cvtColor(rgb_color, cv2.COLOR_RGB2HSV)
 
 # assuming hsv_color is the color converted into HSV
-h, s, v = hsv_color[0][0]
-red_lower = np.array([h - 10, 100, 100])
-red_upper = np.array([h + 10, 255, 255])
-
+#h, s, v = hsv_color[0][0]
+#red_lower = np.array([h - 10, 100, 100])
+#red_upper = np.array([h + 10, 255, 255])
 
 # Define lower and upper bounds for orange color
 lower_orange = np.array([20, 100, 100])
@@ -210,7 +210,8 @@ while True:
 
         if pink_moment["m00"] != 0 and green_moment["m00"] != 0:
             pink_center = (int(pink_moment["m10"] / pink_moment["m00"]), int(pink_moment["m01"] / pink_moment["m00"]))
-            green_center = (int(green_moment["m10"] / green_moment["m00"]), int(green_moment["m01"] / green_moment["m00"]))
+            green_center = (
+            int(green_moment["m10"] / green_moment["m00"]), int(green_moment["m01"] / green_moment["m00"]))
 
             # Calculate the angle between the centers of blue and green rectangles
             angle_of_robot = robot_angle = calculate_angle(pink_center, green_center)
@@ -222,7 +223,6 @@ while True:
             cv2.putText(frame, "Robot angle: {:.2f}".format(robot_angle), (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7,
                         (0, 255, 0), 2)
 
-
     # Apply morphological operations
     mask_green = cv2.erode(mask_green, kernel, iterations=1)
     mask_green = cv2.dilate(mask_green, kernel, iterations=1)
@@ -233,7 +233,7 @@ while True:
     mask_orange = cv2.erode(mask_orange, kernel, iterations=1)
     mask_orange = cv2.dilate(mask_orange, kernel, iterations=1)
 
-    # Blur mask for red object
+    #Blur mask for red object
     blur_red = cv2.blur(mask_red, (14, 14))
 
     # Find contours for red object
@@ -267,14 +267,15 @@ while True:
     contours_green = sorted(contours_green, key=cv2.contourArea, reverse=True)
     contours_orange, _ = cv2.findContours(mask_orange, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
-    # cv2.imshow('orange count', mask_orange)
+    #cv2.imshow('orange count', mask_red)
 
     if contours_green:
         M = cv2.moments(contours_green[0])
         cX = int(M["m10"] / M["m00"])
         cY = int(M["m01"] / M["m00"])
         cv2.circle(frame, (cX, cY), 7, (255, 255, 255), -1)
-        cv2.putText(frame, f"centroid {cX}, {cY}", (cX - 20, cY - 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
+        cv2.putText(frame, f"centroid {cX}, {cY}", (cX - 20, cY - 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255),
+                    2)
 
         # Find white object and draw minimum enclosing circle
         contours_white, _ = cv2.findContours(mask_white, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -283,14 +284,16 @@ while True:
         closest_ball_center = None
 
         num_balls_white = 0
+
         for cnt in contours_white:
             if cnt.shape[0] > 5:
+
                 (x, y), radius = cv2.minEnclosingCircle(cnt)
-                num_balls_white += 1
 
                 center = (int(x), int(y))
                 radius = int(radius)
-                if radius > 11 and radius < 20:
+                if radius > 11 and radius < 25 and x >= goal_left[0] - 12 and x <= goal_right[0] + 12:
+                    num_balls_white += 1
                     cv2.circle(frame, center, radius, (0, 255, 0), 2)
                     cv2.putText(frame, f"ball {center[0]}, {center[1]}", (center[0] - 20, center[1] - 20),
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
@@ -303,17 +306,20 @@ while True:
                         min_distance = pixel_distance
                         closest_ball_center = center
 
+
         num_balls_orange = 0
+
         for cnt in contours_orange:
             # Fit a circle to the contour if it has enough points
             if cnt.shape[0] > 5:
+
                 (x, y), radius = cv2.minEnclosingCircle(cnt)
                 center = (int(x), int(y))
                 radius = int(radius)
-                num_balls_orange += 1
 
                 # Draw the circle if it's big enough and track it
-                if radius > 10 and radius < 20:
+                if radius > 13.5 and radius < 18 and x >= goal_left[0] - 12 and x <= goal_right[0] + 12:
+                    num_balls_orange += 1
                     cv2.circle(frame, center, radius, (0, 165, 255), 2)  # use orange color for orange circle
                     prevOrangeCircle = center + (radius,)
                     # Orange ball:
@@ -348,14 +354,10 @@ while True:
             # Calculate and display angle between the two lines
             angle_to_ball = ball_angle = calculate_angle(green_center, closest_ball_center)
 
-
             cv2.putText(frame, f"Angle to ball: {ball_angle:.2f}", (10, 50), cv2.FONT_HERSHEY_SIMPLEX,
                         0.7, (255, 0, 0), 2)
 
-
-        ###############################################################################################################
         ########################################### FINDING DISTANCE TO GOAL ##########################################
-        ###############################################################################################################
 
         # Draw the goals on the frame
         cv2.circle(frame, goal_left, radius=8, color=(0, 255, 255), thickness=-2)  # Yellow dot
@@ -377,15 +379,16 @@ while True:
             draw_line_to_goals(frame, green_center, goal_right, (0, 255, 255), thickness=2)
 
         cv2.putText(frame, f"Angle to goal: {goal_angle:.2f}", (10, 70), cv2.FONT_HERSHEY_SIMPLEX,
-                        0.7, (255, 0, 0), 2)
+                    0.7, (255, 0, 0), 2)
         cv2.putText(frame, f"distance to goal: {goal_distance:.2f}", (10, 90), cv2.FONT_HERSHEY_SIMPLEX,
                     0.7, (255, 0, 0), 2)
 
-
     cv2.imshow('All Contours', frame)
+    cv2.imshow('orange', mask_white)
+
 
     if cv2.waitKey(1) & 0xFF == ord('q'):
-        flask_thread.join()
+        #flask_thread.join()
         break
 
 cap.release()
