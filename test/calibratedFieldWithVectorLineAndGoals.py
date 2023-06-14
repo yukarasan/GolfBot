@@ -16,17 +16,19 @@ def flask_server():
 @app.route("/")
 def determineNextMove():
     # if nuværende antalBolde == 5 || antal == 0 --> gå til goal, else --> gå til nærmeste bold
-    if num_balls_white + num_balls_orange == 5 or num_balls_white + num_balls_orange == 0:
-        data = {"instruction": determine_goal_instruction(angle_to_goal, angle_of_robot, goal_distance),
-                "angle": "{:.2f}".format(calculate_shortest_angle(angle_of_robot, angle_to_goal)),
-                "distance": "{:.2f}".format(goal_distance),
-                "0 balls=": "yes"
+    #if num_balls_white + num_balls_orange == 5 or num_balls_white + num_balls_orange == 0:
+    if num_balls_white + num_balls_orange == 0:
+        goal_instruction = determine_goal_instruction(angle_to_goal, angle_of_robot, goal_distance, distance_to_goal_point=goal_point_distance, angle_to_goal_point=goal_point_angle)
+        data = {"instruction": goal_instruction[0],
+                "angle": "{:.2f}".format(goal_instruction[1]),
+                "distance": "{:.2f}".format(goal_instruction[2]),
+                "go to goal": "yes"
                 }
     else:
-        data = {"instruction": determine_turn_direction(angle_to_ball, angle_of_robot),
+        data = {"instruction": determine_turn_direction(angle_to_ball, angle_of_robot, ball_distance),
                 "angle": "{:.2f}".format(calculate_shortest_angle(angle_of_robot, angle_to_ball)),
                 "distance": "{:.2f}".format(ball_distance),
-                "0 balls=": "no"
+                "go to goal": "no"
                 }
 
     return jsonify(data)
@@ -38,6 +40,9 @@ ball_distance = 0
 
 angle_to_goal = 0
 goal_distance = 0
+
+goal_point_distance = 0
+goal_point_angle = 0
 
 num_balls_white = None
 num_balls_orange = None
@@ -169,6 +174,9 @@ while True:
     goal_left = (wall_thickness // 2, frame_height // 2)  # Left side goal
     goal_right = (frame_width - 1 - wall_thickness // 2, frame_height // 2)  # Right side goal
 
+    goal_point_left = (1000 // 2, frame_height // 2)  # Left side goal
+    goal_point_right = (frame_width - 1 - 1000 // 2, frame_height // 2)  # Right side goal
+
     hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
     # Mask for green object
@@ -292,7 +300,7 @@ while True:
 
                 center = (int(x), int(y))
                 radius = int(radius)
-                if radius > 11 and radius < 25 and x >= goal_left[0] - 12 and x <= goal_right[0] + 12:
+                if radius > 13 and radius < 25 and x >= goal_left[0] - 12 and x <= goal_right[0] + 12:
                     num_balls_white += 1
                     cv2.circle(frame, center, radius, (0, 255, 0), 2)
                     cv2.putText(frame, f"ball {center[0]}, {center[1]}", (center[0] - 20, center[1] - 20),
@@ -305,7 +313,6 @@ while True:
                     if pixel_distance < min_distance:
                         min_distance = pixel_distance
                         closest_ball_center = center
-
 
         num_balls_orange = 0
 
@@ -363,28 +370,41 @@ while True:
         cv2.circle(frame, goal_left, radius=8, color=(0, 255, 255), thickness=-2)  # Yellow dot
         cv2.circle(frame, goal_right, radius=8, color=(0, 255, 255), thickness=-2)  # Yellow dot
 
+        cv2.circle(frame, goal_point_left, radius=8, color=(0, 255, 255), thickness=-2)  # Yellow dot
+        cv2.circle(frame, goal_point_right, radius=8, color=(0, 255, 255), thickness=-2)  # Yellow dot
+
         # Calculate distances to the goals
         distance_to_left_goal = calculate_distance(green_center, goal_left) * conversion_factor
         distance_to_right_goal = calculate_distance(green_center, goal_right) * conversion_factor
 
+        distance_to_left_goal_point = calculate_distance(green_center, goal_point_left) * conversion_factor
+        distance_to_right_goal_point = calculate_distance(green_center, goal_point_right) * conversion_factor
+
         goal_angle = None
         # Draw a line to the closest goal
         if distance_to_left_goal < distance_to_right_goal:
-            draw_line_to_goals(frame, green_center, goal_left, (0, 255, 255), thickness=2)
-            goal_distance = distance_to_left_goal
             angle_to_goal = goal_angle = calculate_angle(green_center, goal_left)
+            goal_distance = distance_to_left_goal
+            draw_line_to_goals(frame, green_center, goal_left, (0, 255, 255), thickness=2)
+
+            goal_point_angle = calculate_angle(green_center, goal_point_left)
+            goal_point_distance = distance_to_left_goal_point
         else:
             angle_to_goal = goal_angle = calculate_angle(green_center, goal_right)
             goal_distance = distance_to_right_goal
             draw_line_to_goals(frame, green_center, goal_right, (0, 255, 255), thickness=2)
+
+            goal_point_angle = calculate_angle(green_center, goal_point_right)
+            goal_point_distance = distance_to_right_goal_point
 
         cv2.putText(frame, f"Angle to goal: {goal_angle:.2f}", (10, 70), cv2.FONT_HERSHEY_SIMPLEX,
                     0.7, (255, 0, 0), 2)
         cv2.putText(frame, f"distance to goal: {goal_distance:.2f}", (10, 90), cv2.FONT_HERSHEY_SIMPLEX,
                     0.7, (255, 0, 0), 2)
 
+    #cv2.imshow('orange', mask_white)
+
     cv2.imshow('All Contours', frame)
-    cv2.imshow('orange', mask_white)
 
 
     if cv2.waitKey(1) & 0xFF == ord('q'):

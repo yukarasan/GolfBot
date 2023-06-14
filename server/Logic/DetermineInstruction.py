@@ -8,6 +8,7 @@ class Instructions(Enum):
     MOVE_RIGHT = "Right"
     MOVE_LEFT = "Left"
     SHOOT = "Shoot"
+    FORWARD_THEN_SHOOT = "Forward_Shoot"
 
 def calculate_shortest_angle(angle1, angle2):
     # Normalize the angles to the range -180 to 180
@@ -25,12 +26,14 @@ def calculate_shortest_angle(angle1, angle2):
 
     return diff
 
-def determine_turn_direction(angle1, angle2):
+def determine_turn_direction(angle1, angle2, distance):
     shortest_angle = calculate_shortest_angle(angle1, angle2)
 
     ##if vi er tæt på, så må vinklen godt være større
     ##if vi er meget tæt på, og vinklen er stor, så go backwards
-    if abs(shortest_angle) <= 2.5:
+    if distance < 15 and abs(shortest_angle) <= 7:
+        return Instructions.MOVE_FORWARD.value
+    elif abs(shortest_angle) <= 2.5:
         return Instructions.MOVE_FORWARD.value
     if shortest_angle < 0:
         return Instructions.MOVE_RIGHT.value
@@ -38,18 +41,15 @@ def determine_turn_direction(angle1, angle2):
         return Instructions.MOVE_LEFT.value
 
 
-def determine_goal_instruction(angle1, angle2, distance):
-    shortest_angle = calculate_shortest_angle(angle1, angle2)
+def determine_goal_instruction(angle1, angle2, distance_to_goal, distance_to_goal_point, angle_to_goal_point):
 
-    if distance <= 5 and abs(shortest_angle) <= 3.5:
-        return Instructions.SHOOT.value
-    else: return determine_turn_direction(angle1, angle2)
+    if distance_to_goal <= 12 and abs(angle1) <= 35:
+        return (Instructions.SHOOT.value, 0.00, 0.00)
 
+    #Deciding when to go to the goal point
+    elif distance_to_goal_point >= 7:
+        return (determine_turn_direction(angle_to_goal_point, angle2, distance_to_goal_point), calculate_shortest_angle(angle2, angle_to_goal_point), distance_to_goal_point)
 
-
-def determineAngleToMove(angle_of_robot: float, angle_to_destination: float):
-
-    if angle_of_robot <= 0 and angle_to_destination >= 0 :
-        return abs(angle_of_robot) + abs(angle_to_destination)
-
-    return abs(abs(angle_of_robot) - abs(angle_to_destination))
+    #Turn and drive towards the goal
+    else:
+        return (determine_turn_direction(angle1, angle2, distance_to_goal), calculate_shortest_angle(angle2, angle1), distance_to_goal)
