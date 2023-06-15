@@ -43,7 +43,7 @@ def determine_turn_direction(angle1, angle2, distance):
 
 def determine_goal_instruction(angle1, angle2, distance_to_goal, distance_to_goal_point, angle_to_goal_point):
 
-    if distance_to_goal <= 20 and abs(angle1) <= 15:
+    if distance_to_goal <= 20 and abs(angle1) <= 12:
         return (Instructions.SHOOT.value, 0.00, 0.00)
 
     #Deciding when to go to the goal point
