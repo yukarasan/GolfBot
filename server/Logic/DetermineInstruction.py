@@ -40,7 +40,7 @@ def determine_turn_direction(angle1, angle2, distance):
     elif shortest_angle > 0:
         return Instructions.MOVE_LEFT.value
 
-
+#
 def determine_goal_instruction(angle1, angle2, distance_to_goal, distance_to_goal_point, angle_to_goal_point):
 
     if distance_to_goal <= 20 and abs(angle1) <= 12:
