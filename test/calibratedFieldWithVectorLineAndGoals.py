@@ -181,8 +181,8 @@ while True:
     goal_left = (wall_thickness // 2, frame_height // 2)  # Left side goal
     goal_right = (frame_width - 1 - wall_thickness // 2, frame_height // 2)  # Right side goal
 
-    goal_point_left = (1000 // 2, frame_height // 2)  # Left side goal
-    goal_point_right = (frame_width - 1 - 1000 // 2, frame_height // 2)  # Right side goal
+    goal_point_left = (1200 // 2, frame_height // 2)  # Left side goal
+    goal_point_right = (frame_width - 1 - 1200 // 2, frame_height // 2)  # Right side goal
 
     hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 

@@ -31,7 +31,7 @@ def determine_turn_direction(angle1, angle2, distance):
 
     ##if vi er tæt på, så må vinklen godt være større
     ##if vi er meget tæt på, og vinklen er stor, så go backwards
-    if distance < 25 and abs(shortest_angle) <= 5:
+    if distance < 25 and abs(shortest_angle) <= 3.2:
         return Instructions.MOVE_FORWARD.value
     elif abs(shortest_angle) <= 2.5:
         return Instructions.MOVE_FORWARD.value
@@ -43,13 +43,15 @@ def determine_turn_direction(angle1, angle2, distance):
 #
 def determine_goal_instruction(angle1, angle2, distance_to_goal, distance_to_goal_point, angle_to_goal_point):
 
-    if distance_to_goal <= 20 and abs(angle1) <= 12:
+    shortest_angle = calculate_shortest_angle(angle1, angle2)
+
+    if distance_to_goal <= 18 and abs(shortest_angle) <= 12:
         return (Instructions.SHOOT.value, 0.00, 0.00)
 
     #Deciding when to go to the goal point
-    elif distance_to_goal_point >= 15:
+    elif distance_to_goal_point >= 15 and abs(shortest_angle) >= 45:
         return (determine_turn_direction(angle_to_goal_point, angle2, distance_to_goal_point), calculate_shortest_angle(angle2, angle_to_goal_point), distance_to_goal_point)
 
     #Turn and drive towards the goal
     else:
-        return (determine_turn_direction(angle1, angle2, distance_to_goal), calculate_shortest_angle(angle2, angle1), distance_to_goal - 14)
+        return (determine_turn_direction(angle1, angle2, distance_to_goal), calculate_shortest_angle(angle2, angle1), distance_to_goal - 6)
