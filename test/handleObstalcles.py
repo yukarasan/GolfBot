@@ -13,7 +13,6 @@ def avoid_obstacle(robot, ball, center):
     if abs(robot_q - ball_q) == 2:
         print('gå til nærmeste')
         dest = get_closest_corner(robot)
-        return
     else:
         print('gå til boldkvadrant')
         dest = ball_q
@@ -113,15 +112,14 @@ def is_robot_close_to_obstacle(robot_contour, square_contour):
     # Return True if the robot is touching the square contour
     return is_close
 
-
 def detect_obstacle(image):
     # Convert the image to HSV color space
     hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
 
     # Define the lower and upper red color ranges
     lower_red1 = np.array([0, 70, 50])
-    upper_red1 = np.array([10, 255, 255])
-    lower_red2 = np.array([170, 70, 50])
+    upper_red1 = np.array([20, 255, 255])
+    lower_red2 = np.array([160, 70, 50])
     upper_red2 = np.array([180, 255, 255])
 
     # Create a mask for the red color range
@@ -151,12 +149,7 @@ def detect_obstacle(image):
             obstacle_contours.append(contour)
             draw_rect_and_center(image_with_contours, contour)
 
-    #cv2.drawContours(image_with_contours, obstacle_contours, -1, (0, 255, 0), 2)
-
-    if len(obstacle_contours) > 0:
-        return True, image_with_contours
-
-    return False, image_with_contours
+    return obstacle_contours, image_with_contours
 
 
 def make_obstacle_contours(image):
