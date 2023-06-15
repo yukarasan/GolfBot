@@ -158,8 +158,8 @@ def draw_line_to_goals(image, start, end, color, thickness=2):
 conversion_factor = None
 
 # Create and start the Flask server in a separate thread
-flask_thread = threading.Thread(target=flask_server)
-flask_thread.start()
+#flask_thread = threading.Thread(target=flask_server)
+#flask_thread.start()
 
 while True:
     ret, frame = cap.read()
@@ -245,7 +245,7 @@ while True:
 
     # Find contours for red object
     contours_red, _ = cv2.findContours(blur_red, cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE)
-    cv2.drawContours(frame, contours_red, -1, (0, 255, 0), 3)
+    #cv2.drawContours(frame, contours_red, -1, (0, 255, 0), 3)
 
     # Calculate conversion factor
     if conversion_factor is None and contours_red:

@@ -60,10 +60,11 @@ def draw_rect_and_center(image, contour):
     rotated_box = cv2.transform(np.array([box]), rotation_matrix)[0]
 
     # Get the corner points of the rotated and scaled rectangle
-    obstacle_points[1] = top_left = tuple(rotated_box[1])
-    obstacle_points[0] = top_right = tuple(rotated_box[2])
-    obstacle_points[4] = bottom_right = tuple(rotated_box[3])
-    obstacle_points[3] = bottom_left = tuple(rotated_box[0])
+    obstacle_points = (tuple(rotated_box[2]), tuple(rotated_box[1]), tuple(rotated_box[0]), tuple(rotated_box[3]))
+    top_right = obstacle_points[0]
+    top_left = obstacle_points[1]
+    bottom_left = obstacle_points[2]
+    bottom_right = obstacle_points[3]
 
     # Draw the rotated and scaled bounding rectangle
     cv2.drawContours(image, [rotated_box], 0, (0, 0, 255), 2)
@@ -172,7 +173,7 @@ def make_obstacle_contours(image):
 
     # Show the resized image with obstacles
     cv2.imshow("Obstacles", image_with_obstacles)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
+    #cv2.waitKey(0)
+    #cv2.destroyAllWindows()
 
 
