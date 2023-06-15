@@ -12,6 +12,9 @@ import socket
 import json
 import time
 
+# Global direction counter to keep track of how many times the robot has turned left or right
+direction_counter = 0
+
 
 class ConveyorThread(Thread):
     def __init__(self, conveyor):
@@ -31,7 +34,25 @@ class ConveyorThread(Thread):
         self.conveyor.stop()  # Stops the conveyor motor
 
 
-class SpinnerThread(Thread):
+class SpinnerThreadInwards(Thread):
+    def __init__(self, spinner):
+        Thread.__init__(self)
+        self.spinner = spinner
+        self.running = True
+
+    def run(self):
+        while self.running:
+            self.spinner.run(-300)  # Run the spinner
+            time.sleep(0.1)  # Sleep for a short while to not hog the CPU
+
+    def stop(self):
+        self.running = False
+
+    def stop_spinner(self):
+        self.spinner.stop()  # Stops the spinner motor
+
+
+class SpinnerThreadOutwards(Thread):
     def __init__(self, spinner):
         Thread.__init__(self)
         self.spinner = spinner
@@ -77,7 +98,7 @@ def main():
     conveyor_thread.start()
 
     # Start the spinner thread
-    spinner_thread = SpinnerThread(spinner)
+    spinner_thread = SpinnerThreadInwards(spinner)
     spinner_thread.start()
 
     while True:
@@ -106,7 +127,10 @@ def main():
                     robot=robot,
                     instruction=json_data,
                     conveyor=conveyor,
-                    conveyor_thread=conveyor_thread
+                    conveyor_thread=conveyor_thread,
+                    spinner_thread=spinner_thread,
+                    winning_sound=winning_sound,
+                    ev3=ev3
                 )
             else:
                 print('Request failed.')
@@ -118,7 +142,29 @@ def main():
             sock.close()
 
 
-def process_instruction(robot: DriveBase, instruction, conveyor: Motor, conveyor_thread: ConveyorThread, spinner_thread: SpinnerThread):
+def process_instruction(
+        robot: DriveBase,
+        instruction,
+        conveyor: Motor,
+        conveyor_thread: ConveyorThread,
+        spinner_thread: SpinnerThreadInwards,
+        winning_sound: SoundFile,
+        ev3: EV3Brick
+):
+    if instruction["instruction"] in ["Left", "Right"]:
+
+        global direction_counter
+        direction_counter += 1
+
+        print("Direction counter:", direction_counter)
+
+        if direction_counter >= 15:
+            direction_counter = 0
+            move(robot=robot, distance=-18)  # move backwards
+    else:
+        direction_counter = 0  # Reset the counter if the instruction is not "Left" or "Right"
+        print("Inside else")
+
     if instruction["instruction"] == "Left":
         angle = float(instruction["angle"])
         distance = float(instruction["distance"])
@@ -154,10 +200,16 @@ def process_instruction(robot: DriveBase, instruction, conveyor: Motor, conveyor
             move(robot=robot, distance=distance)
     elif instruction["instruction"] == "Shoot":
         conveyor_thread.stop()  # Stop the conveyor belt thread
+
+        # stop the spinner thread
+        spinner_thread.stop_spinner()
+        spinner_thread.stop()
+
         release_conveyor(conveyor=conveyor)  # Release the conveyor belt
-        time.sleep(10)  # Wait for 10 seconds
-        conveyor_thread.stop_conveyor()  # Stop the conveyor belt
-        spinner_thread.stop_spinner()  # Stop the spinner
+        # Play the winning sound
+        ev3.speaker.play_file(file=winning_sound)
+        # Display the winning image
+        ev3.screen.load_image(ImageFile.THUMBS_UP)
 
 
 def turn(robot: DriveBase, angle):
@@ -176,6 +228,7 @@ def move(robot: DriveBase, distance):
 
 def stop(robot: DriveBase):
     robot.stop()
+
 
 # Run conveyor function to be started on a separate thread
 def run_conveyor(conveyor: Motor):
