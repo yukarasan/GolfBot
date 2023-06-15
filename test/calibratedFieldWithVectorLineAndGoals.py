@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 import math
-from handleObstalcles import avoid_obstacle, is_obstacle, make_obstacle_contours
+from handleObstalcles import avoid_obstacle, is_obstacle, detect_obstacle
 
 from flask import Flask, jsonify
 import threading
@@ -391,7 +391,9 @@ while True:
         cv2.putText(frame, f"distance to goal: {goal_distance:.2f}", (10, 90), cv2.FONT_HERSHEY_SIMPLEX,
                     0.7, (255, 0, 0), 2)
 
-        make_obstacle_contours(frame)
+        if (detect_obstacle(frame)):
+            cv2.drawContours(frame, detect_obstacle(frame), -1, (0, 255, 0), 2)
+
 
     cv2.imshow('All Contours', frame)
     cv2.imshow('orange', mask_white)

@@ -151,7 +151,7 @@ def detect_obstacle(image):
             obstacle_contours.append(contour)
             draw_rect_and_center(image_with_contours, contour)
 
-    cv2.drawContours(image_with_contours, obstacle_contours, -1, (0, 255, 0), 2)
+    #cv2.drawContours(image_with_contours, obstacle_contours, -1, (0, 255, 0), 2)
 
     if len(obstacle_contours) > 0:
         return True, image_with_contours
@@ -169,10 +169,11 @@ def make_obstacle_contours(image):
     resized_image = cv2.resize(sample_image, (width, height))
 
     # Call the detect_obstacle function with the resized image
-    obstacle_detected, image_with_obstacles = detect_obstacle(resized_image)
+    image_with_obstacles = detect_obstacle(resized_image)
+    return image_with_obstacles
 
     # Show the resized image with obstacles
-    cv2.imshow("Obstacles", image_with_obstacles)
+    #cv2.imshow("Obstacles", image_with_obstacles)
     #cv2.waitKey(0)
     #cv2.destroyAllWindows()
 
