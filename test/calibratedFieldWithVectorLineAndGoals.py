@@ -1,6 +1,8 @@
 import cv2
 import numpy as np
 import math
+from handleObstalcles import avoid_obstacle, is_obstacle, make_obstacle_contours
+
 from flask import Flask, jsonify
 import threading
 
@@ -8,6 +10,7 @@ from server.Logic.DetermineInstruction import determine_turn_direction, \
     calculate_shortest_angle, determine_goal_instruction
 
 app = Flask(__name__)
+global pink_center, closest_ball_center
 
 def flask_server():
     app.run(port=8081)
@@ -15,6 +18,8 @@ def flask_server():
 
 @app.route("/")
 def determineNextMove():
+
+
     # if nuværende antalBolde == 5 || antal == 0 --> gå til goal, else --> gå til nærmeste bold
     if num_balls_white + num_balls_orange == 5 or num_balls_white + num_balls_orange == 0:
         data = {"instruction": determine_goal_instruction(angle_to_goal, angle_of_robot, goal_distance),
@@ -139,6 +144,8 @@ def draw_line(image, start, end, color, thickness=2):
 
 
 def draw_line_to_goals(image, start, end, color, thickness=2):
+    global pink_center, closest_ball_center
+
     # Validate the image input
     if len(image.shape) < 2:
         raise ValueError("Invalid image input")
@@ -342,6 +349,7 @@ while True:
                         closest_orange_ball_center = center
 
         if closest_ball_center is not None:
+
             # Draw a line between centroid of green object and center of the closest white ball
             cv2.line(frame, (cX, cY), closest_ball_center, (0, 0, 255), 2)
 
@@ -382,6 +390,8 @@ while True:
                     0.7, (255, 0, 0), 2)
         cv2.putText(frame, f"distance to goal: {goal_distance:.2f}", (10, 90), cv2.FONT_HERSHEY_SIMPLEX,
                     0.7, (255, 0, 0), 2)
+
+        make_obstacle_contours(frame)
 
     cv2.imshow('All Contours', frame)
     cv2.imshow('orange', mask_white)

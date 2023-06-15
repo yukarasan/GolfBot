@@ -2,10 +2,45 @@ import cv2
 import numpy as np
 
 global top_left, top_right, bottom_right, bottom_left
+global obstacle_points
+
+
+# skal måske ændres ift hvordan koordinaterne er for framen.
+def avoid_obstacle(robot, ball, center):
+    robot_q = find_quadrant(robot, center)
+    ball_q = find_quadrant(ball, center)
+
+    if abs(robot_q - ball_q) == 2:
+        print('gå til nærmeste')
+        dest = get_closest_corner(robot)
+        return
+    else:
+        print('gå til boldkvadrant')
+        dest = ball_q
+
+    # move to dest
+    move_to = obstacle_points[dest - 1]
+    return move_to
+
+
+def is_obstacle(line_start, line_end):
+    global top_left, top_right, bottom_right, bottom_left
+
+    # Check if the line intersects with any of the edges of the rectangle
+    intersection1 = cv2.lineIntersection(line_start, line_end, top_left, top_right)
+    intersection2 = cv2.lineIntersection(line_start, line_end, top_left, bottom_left)
+    intersection3 = cv2.lineIntersection(line_start, line_end, top_right, bottom_right)
+    intersection4 = cv2.lineIntersection(line_start, line_end, bottom_left, bottom_right)
+
+    if intersection1[0] or intersection2[0] or intersection3[0] or intersection4[0]:
+        return True
+
+    return False
 
 
 def draw_rect_and_center(image, contour):
     global top_left, top_right, bottom_right, bottom_left
+    global obstacle_points
 
     # Find the minimum bounding rectangle that encloses the contour
     rect = cv2.minAreaRect(contour)
@@ -25,16 +60,17 @@ def draw_rect_and_center(image, contour):
     rotated_box = cv2.transform(np.array([box]), rotation_matrix)[0]
 
     # Get the corner points of the rotated and scaled rectangle
-    top_left = tuple(rotated_box[1])
-    top_right = tuple(rotated_box[2])
-    bottom_right = tuple(rotated_box[3])
-    bottom_left = tuple(rotated_box[0])
+    obstacle_points[1] = top_left = tuple(rotated_box[1])
+    obstacle_points[0] = top_right = tuple(rotated_box[2])
+    obstacle_points[4] = bottom_right = tuple(rotated_box[3])
+    obstacle_points[3] = bottom_left = tuple(rotated_box[0])
 
     # Draw the rotated and scaled bounding rectangle
     cv2.drawContours(image, [rotated_box], 0, (0, 0, 255), 2)
 
     # Draw a circle to represent the center of the bounding rectangle
     cv2.circle(image, (center_x, center_y), 3, (0, 255, 0), -1)
+
 
 def find_quadrant(obj_coordinate, center_coordinate):
     x_new = obj_coordinate[0] - center_coordinate[0]
@@ -64,22 +100,6 @@ def get_closest_corner(robot_coordinate):
 
     # Return the closest corner
     return corners[closest_corner_index]
-
-
-# skal måske ændres ift hvordan koordinaterne er for framen.
-def go_around(robot, ball, center):
-    robot_q = find_quadrant(robot, center)
-    ball_q = find_quadrant(ball, center)
-
-    if abs(robot_q - ball_q) == 2:
-        print('gå til nærmeste')
-        dest = get_closest_corner(robot)
-        return
-    else:
-        print('gå til boldkvadrant')
-        dest = ball
-
-    # move to dest
 
 
 def is_robot_close_to_obstacle(robot_contour, square_contour):
@@ -138,19 +158,21 @@ def detect_obstacle(image):
     return False, image_with_contours
 
 
-# Load the sample image for testing
-sample_image = cv2.imread('C:/Users/mathi/PycharmProjects/GolfBot/images/testimage1.jpg')
+def make_obstacle_contours(image):
+    # Load the sample image for testing
+    sample_image = image
+    # Resize the image to fit the screen
+    scale_percent = 30  # Adjust the scale factor as needed
+    width = int(sample_image.shape[1] * scale_percent / 100)
+    height = int(sample_image.shape[0] * scale_percent / 100)
+    resized_image = cv2.resize(sample_image, (width, height))
 
-# Resize the image to fit the screen
-scale_percent = 30  # Adjust the scale factor as needed
-width = int(sample_image.shape[1] * scale_percent / 100)
-height = int(sample_image.shape[0] * scale_percent / 100)
-resized_image = cv2.resize(sample_image, (width, height))
+    # Call the detect_obstacle function with the resized image
+    obstacle_detected, image_with_obstacles = detect_obstacle(resized_image)
 
-# Call the detect_obstacle function with the resized image
-obstacle_detected, image_with_obstacles = detect_obstacle(resized_image)
+    # Show the resized image with obstacles
+    cv2.imshow("Obstacles", image_with_obstacles)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
 
-# Show the resized image with obstacles
-cv2.imshow("Obstacles", image_with_obstacles)
-cv2.waitKey(0)
-cv2.destroyAllWindows()
+
