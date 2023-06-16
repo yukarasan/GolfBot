@@ -119,6 +119,13 @@ def calculate_angle(center1, center2):
     angle = math.degrees(math.atan2(y2 - y1, x2 - x1))
     return angle
 
+def calculate_new_coordinates(center, angle, distance):
+    x, y = center
+    angle_radians = math.radians(angle)
+    new_x = x - distance * math.cos(angle_radians)
+    new_y = y - distance * math.sin(angle_radians)
+    return int(new_x), int(new_y)
+
 
 def draw_line(image, start, end, color, thickness=2):
     height, width = image.shape[:2]
@@ -174,8 +181,8 @@ while True:
     goal_left = (wall_thickness // 2, frame_height // 2)  # Left side goal
     goal_right = (frame_width - 1 - wall_thickness // 2, frame_height // 2)  # Right side goal
 
-    goal_point_left = (1000 // 2, frame_height // 2)  # Left side goal
-    goal_point_right = (frame_width - 1 - 1000 // 2, frame_height // 2)  # Right side goal
+    goal_point_left = (1200 // 2, frame_height // 2)  # Left side goal
+    goal_point_right = (frame_width - 1 - 1200 // 2, frame_height // 2)  # Right side goal
 
     hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
@@ -290,7 +297,7 @@ while True:
         min_distance = np.inf
         min_distance_orange = np.inf
         closest_ball_center = None
-
+        
         num_balls_white = 0
 
         for cnt in contours_white:
@@ -300,7 +307,7 @@ while True:
 
                 center = (int(x), int(y))
                 radius = int(radius)
-                if radius > 14.5 and radius < 17.6 and x >= goal_left[0] - 12 and x <= goal_right[0] + 12:
+                if radius > 12.8 and radius < 17.6 and x >= goal_left[0] - 12 and x <= goal_right[0] + 12:
                     num_balls_white += 1
                     cv2.circle(frame, center, radius, (0, 255, 0), 2)
                     cv2.putText(frame, f"ball {center[0]}, {center[1]}", (center[0] - 20, center[1] - 20),
@@ -348,6 +355,7 @@ while True:
                         min_distance_orange = pixel_distance
                         closest_orange_ball_center = center
 
+        pink_center_back = None
         if closest_ball_center is not None:
             # Draw a line between centroid of green object and center of the closest white ball
             cv2.line(frame, (cX, cY), closest_ball_center, (0, 0, 255), 2)
@@ -358,8 +366,13 @@ while True:
             cv2.putText(frame, f"Distance: {distance_cm:.2f} cm", (cX - 20, cY - 40), cv2.FONT_HERSHEY_SIMPLEX, 0.5,
                         (0, 0, 255), 2)
 
+            back_distance = 100
+            pink_center_back = calculate_new_coordinates(pink_center, angle_of_robot, back_distance)
+
+            cv2.circle(frame, pink_center_back, 10, (255, 0, 255), -1)
+
             # Calculate and display angle between the two lines
-            angle_to_ball = ball_angle = calculate_angle(pink_center, closest_ball_center)
+            angle_to_ball = ball_angle = calculate_angle(pink_center_back, closest_ball_center)
 
             cv2.putText(frame, f"Angle to ball: {ball_angle:.2f}", (10, 50), cv2.FONT_HERSHEY_SIMPLEX,
                         0.7, (255, 0, 0), 2)
