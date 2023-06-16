@@ -14,6 +14,7 @@ import time
 
 # Global direction counter to keep track of how many times the robot has turned left or right
 direction_counter = 0
+stopInstructions = False
 
 class ConveyorThread(Thread):
     def __init__(self, conveyor):
@@ -37,18 +38,14 @@ class SpinnerThreadInwards(Thread):
         Thread.__init__(self)
         self.spinner = spinner
         self.running = True
-        self.rotation = 0  # this will keep track of the current rotation
+        self.rotation = 360  # one full rotation
 
     def run(self):
-        while self.running or self.rotation % 360 != 0:  # keep running until stop() is called and full rotation is complete
-            self.spinner.run_angle(speed=-300, rotation_angle=10)  # spin 10 degrees at a time
-            self.rotation += 10
-            self.rotation %= 360  # this ensures that rotation stays within 0-359
+        while self.running:
+            self.spinner.run_angle(speed=-300, rotation_angle=self.rotation, then=Stop.COAST, wait=True)
 
     def stop(self):
         self.running = False
-
-    def stop_spinner(self):
         self.spinner.stop()  # Stops the spinner motor
 
 
@@ -62,25 +59,6 @@ class SpinnerThreadOutwards(Thread):
     def run(self):
         while self.running:
             self.spinner.run_angle(speed=300, rotation_angle=self.rotation)
-
-    def stop(self):
-        self.running = False
-
-    def stop_spinner(self):
-        self.spinner.stop()  # Stops the spinner motor
-
-
-
-class SpinnerThreadOutwards(Thread):
-    def __init__(self, spinner):
-        Thread.__init__(self)
-        self.spinner = spinner
-        self.running = True
-
-    def run(self):
-        while self.running:
-            self.spinner.run(300)  # Run the spinner
-            time.sleep(0.1)  # Sleep for a short while to not hog the CPU
 
     def stop(self):
         self.running = False
@@ -120,7 +98,7 @@ def main():
     spinner_thread = SpinnerThreadInwards(spinner)
     spinner_thread.start()
 
-    while True:
+    while spinner_thread.running and stopInstructions is not True:
         # Socket connection setup
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         # 10.209.234.177 || 172.20.10.4
@@ -147,9 +125,7 @@ def main():
                     instruction=json_data,
                     conveyor=conveyor,
                     conveyor_thread=conveyor_thread,
-                    spinner_thread=spinner_thread,
-                    winning_sound=winning_sound,
-                    ev3=ev3
+                    spinner_thread=spinner_thread
                 )
             else:
                 print('Request failed.')
@@ -160,15 +136,24 @@ def main():
         finally:
             sock.close()
 
+    if spinner_thread.running:
+        spinner_thread.stop()
+
+    # Stop the conveyor belt thread
+    conveyor_thread.stop()
+
+    wait(2000)  # Wait for 2 seconds
+    ev3.speaker.play_file(winning_sound)  # Play the winning sound
+    ev3.screen.load_image(winning_image)  # Display the winning image
+    wait(2000)  # Wait for 5 seconds
+
 
 def process_instruction(
         robot: DriveBase,
         instruction,
         conveyor: Motor,
         conveyor_thread: ConveyorThread,
-        spinner_thread: SpinnerThreadInwards,
-        winning_sound: SoundFile,
-        ev3: EV3Brick
+        spinner_thread: SpinnerThreadInwards
 ):
     if instruction["instruction"] in ["Left", "Right"]:
 
@@ -225,11 +210,9 @@ def process_instruction(
         spinner_thread.stop()
 
         release_conveyor(conveyor=conveyor)  # Release the conveyor belt
-        # Play the winning sound
-        ev3.speaker.play_file(file=winning_sound)
-        # Display the winning image
-        ev3.screen.load_image(ImageFile.THUMBS_UP)
 
+        global stopInstructions
+        stopInstructions = True
 
 def turn(robot: DriveBase, angle):
     # Code to turn the robot left
