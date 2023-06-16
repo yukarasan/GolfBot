@@ -15,7 +15,6 @@ import time
 # Global direction counter to keep track of how many times the robot has turned left or right
 direction_counter = 0
 
-
 class ConveyorThread(Thread):
     def __init__(self, conveyor):
         Thread.__init__(self)
@@ -33,23 +32,43 @@ class ConveyorThread(Thread):
     def stop_conveyor(self):
         self.conveyor.stop()  # Stops the conveyor motor
 
-
 class SpinnerThreadInwards(Thread):
     def __init__(self, spinner):
         Thread.__init__(self)
         self.spinner = spinner
         self.running = True
+        self.rotation = 0  # this will keep track of the current rotation
 
     def run(self):
-        while self.running:
-            self.spinner.run(-300)  # Run the spinner
-            time.sleep(0.1)  # Sleep for a short while to not hog the CPU
+        while self.running or self.rotation % 360 != 0:  # keep running until stop() is called and full rotation is complete
+            self.spinner.run_angle(speed=-300, rotation_angle=10)  # spin 10 degrees at a time
+            self.rotation += 10
+            self.rotation %= 360  # this ensures that rotation stays within 0-359
 
     def stop(self):
         self.running = False
 
     def stop_spinner(self):
         self.spinner.stop()  # Stops the spinner motor
+
+
+class SpinnerThreadOutwards(Thread):
+    def __init__(self, spinner):
+        Thread.__init__(self)
+        self.spinner = spinner
+        self.running = True
+        self.rotation = 360  # one full rotation
+
+    def run(self):
+        while self.running:
+            self.spinner.run_angle(speed=300, rotation_angle=self.rotation)
+
+    def stop(self):
+        self.running = False
+
+    def stop_spinner(self):
+        self.spinner.stop()  # Stops the spinner motor
+
 
 
 class SpinnerThreadOutwards(Thread):
@@ -81,7 +100,7 @@ def main():
 
     # Wheel diameter and axle track (in millimeters)
     wheel_diameter = 56
-    axle_track = 100
+    axle_track = 30
 
     # DriveBase object
     robot = DriveBase(left_wheel, right_wheel, wheel_diameter, axle_track)
