@@ -17,7 +17,7 @@ def flask_server():
 def determineNextMove():
     # if nuværende antalBolde == 5 || antal == 0 --> gå til goal, else --> gå til nærmeste bold
     #if num_balls_white + num_balls_orange == 5 or num_balls_white + num_balls_orange == 0:
-    if num_balls_white + num_balls_orange == 0:
+    if num_balls == 0:
         goal_instruction = determine_goal_instruction(angle_to_goal, angle_of_robot, goal_distance, distance_to_goal_point=goal_point_distance, angle_to_goal_point=goal_point_angle)
         data = {"instruction": goal_instruction[0],
                 "angle": "{:.2f}".format(goal_instruction[1]),
@@ -44,8 +44,7 @@ goal_distance = 0
 goal_point_distance = 0
 goal_point_angle = 0
 
-num_balls_white = None
-num_balls_orange = None
+num_balls = None
 
 
 def flask_server():
@@ -119,6 +118,13 @@ def calculate_angle(center1, center2):
     angle = math.degrees(math.atan2(y2 - y1, x2 - x1))
     return angle
 
+def calculate_new_coordinates(center, angle, distance):
+    x, y = center
+    angle_radians = math.radians(angle)
+    new_x = x - distance * math.cos(angle_radians)
+    new_y = y - distance * math.sin(angle_radians)
+    return int(new_x), int(new_y)
+
 
 def draw_line(image, start, end, color, thickness=2):
     height, width = image.shape[:2]
@@ -174,8 +180,8 @@ while True:
     goal_left = (wall_thickness // 2, frame_height // 2)  # Left side goal
     goal_right = (frame_width - 1 - wall_thickness // 2, frame_height // 2)  # Right side goal
 
-    goal_point_left = (1000 // 2, frame_height // 2)  # Left side goal
-    goal_point_right = (frame_width - 1 - 1000 // 2, frame_height // 2)  # Right side goal
+    goal_point_left = (1200 // 2, frame_height // 2)  # Left side goal
+    goal_point_right = (frame_width - 1 - 1200 // 2, frame_height // 2)  # Right side goal
 
     hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
@@ -291,121 +297,101 @@ while True:
         min_distance_orange = np.inf
         closest_ball_center = None
 
-        num_balls_white = 0
+        # Convert BGR to grayscale
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
-        for cnt in contours_white:
-            if cnt.shape[0] > 5:
+        # Apply a blur to reduce noise
+        image_blur = cv2.GaussianBlur(gray, (5, 5), 0)
 
-                (x, y), radius = cv2.minEnclosingCircle(cnt)
+        circles = cv2.HoughCircles(image_blur, cv2.HOUGH_GRADIENT, dp=1, minDist=30, param1=50, param2=20, minRadius=14,
+                                  maxRadius=17)
 
+        num_balls = 0
+        if circles is not None:
+            # Convert the coordinates and radius of the circles to integers
+            circles = np.round(circles[0, :]).astype(int)
+
+            # Filter for white colors and exclude dark colors
+            hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+            lower_white = np.array([0, 0, 100])  # Define lower threshold for white color
+            upper_white = np.array([179, 255, 255])  # Define upper threshold for white color
+            mask = cv2.inRange(hsv, lower_white, upper_white)
+
+            # Apply the mask to the circles and keep only the white circles
+            filtered_circles = []
+            for (x, y, r) in circles:
+                if mask[y, x] == 255:  # Check if the pixel is white
+                    filtered_circles.append((x, y, r))
+
+            # Draw the filtered circles
+            num_balls = len(filtered_circles)
+            for (x, y, r) in filtered_circles:
+                cv2.circle(frame, (x, y), r, (0, 255, 0), 2)
                 center = (int(x), int(y))
-                radius = int(radius)
-                if radius > 14.5 and radius < 17.6 and x >= goal_left[0] - 12 and x <= goal_right[0] + 12:
-                    num_balls_white += 1
-                    cv2.circle(frame, center, radius, (0, 255, 0), 2)
-                    cv2.putText(frame, f"ball {center[0]}, {center[1]}", (center[0] - 20, center[1] - 20),
-                                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+                pixel_distance = calculate_distance(center, (cX, cY))
+                pixel_distance = calculate_distance(center, (cX, cY))
 
-                    # Calculate distance between centroid of green object and center of white ball
-                    pixel_distance = calculate_distance(center, (cX, cY))
-                    pixel_distance = calculate_distance(center, (cX, cY))
+                if pixel_distance < min_distance:
+                    min_distance = pixel_distance
+                    closest_ball_center = center
 
-                    if pixel_distance < min_distance:
-                        min_distance = pixel_distance
-                        closest_ball_center = center
+    pink_center_back = None
+    if closest_ball_center is not None:
+        # Draw a line between centroid of green object and center of the closest white ball
+        cv2.line(frame, (cX, cY), closest_ball_center, (0, 0, 255), 2)
 
-        num_balls_orange = 0
+        # Convert pixel distance to cm and display it on the frame
+        ball_distance = distance_cm = min_distance * conversion_factor
+        cv2.putText(frame, f"Distance: {distance_cm:.2f} cm", (cX - 20, cY - 40), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
 
-        for cnt in contours_orange:
-            # Fit a circle to the contour if it has enough points
-            if cnt.shape[0] > 5:
+        back_distance = 100
+        pink_center_back = calculate_new_coordinates(pink_center, angle_of_robot, back_distance)
 
-                (x, y), radius = cv2.minEnclosingCircle(cnt)
-                center = (int(x), int(y))
-                radius = int(radius)
+        cv2.circle(frame, pink_center_back, 10, (255, 0, 255), -1)
+        # Calculate and display angle between the two lines
+        angle_to_ball = ball_angle = calculate_angle(pink_center_back, closest_ball_center)
 
-                # Draw the circle if it's big enough and track it
-                if radius > 13.5 and radius < 18 and x >= goal_left[0] - 12 and x <= goal_right[0] + 12:
-                    num_balls_orange += 1
-                    cv2.circle(frame, center, radius, (0, 165, 255), 2)  # use orange color for orange circle
-                    prevOrangeCircle = center + (radius,)
-                    # Orange ball:
-                    cv2.circle(frame, center, radius, (0, 255, 255), 2)  # Draw the circle with a cyan color
-                    cv2.putText(frame, f"orange ball {center[0]}, {center[1]}", (center[0] - 20, center[1] - 20),
-                                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 2)
+        cv2.putText(frame, f"Angle to ball: {ball_angle:.2f}", (10, 50), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 0, 0), 2)
 
-                    # Calculate distance between centroid of green object and center of orange ball
-                    pixel_distance = calculate_distance(center, (cX, cY))
-                    pixel_distance = calculate_distance(center, (cX, cY))
+    ########################################### FINDING DISTANCE TO GOAL ##########################################
 
-                    if pixel_distance < min_distance:
-                        min_distance = pixel_distance
-                        closest_ball_center = center
+    # Draw the goals on the frame
+    cv2.circle(frame, goal_left, radius=8, color=(0, 255, 255), thickness=-2)  # Yellow dot
+    cv2.circle(frame, goal_right, radius=8, color=(0, 255, 255), thickness=-2)  # Yellow dot
 
-                    # Calculate distance between centroid of green object and center of orange ball
-                    pixel_distance = calculate_distance(center, (cX, cY))
-                    if pixel_distance < min_distance_orange:
-                        min_distance_orange = pixel_distance
-                        closest_orange_ball_center = center
+    cv2.circle(frame, goal_point_left, radius=8, color=(0, 255, 255), thickness=-2)  # Yellow dot
+    cv2.circle(frame, goal_point_right, radius=8, color=(0, 255, 255), thickness=-2)  # Yellow dot
 
-        if closest_ball_center is not None:
-            # Draw a line between centroid of green object and center of the closest white ball
-            cv2.line(frame, (cX, cY), closest_ball_center, (0, 0, 255), 2)
+    # Calculate distances to the goals
+    distance_to_left_goal = calculate_distance(pink_center, goal_left) * conversion_factor
+    distance_to_right_goal = calculate_distance(pink_center, goal_right) * conversion_factor
 
-            # Convert pixel distance to cm and display it on the frame
+    distance_to_left_goal_point = calculate_distance(pink_center, goal_point_left) * conversion_factor
+    distance_to_right_goal_point = calculate_distance(pink_center, goal_point_right) * conversion_factor
 
-            ball_distance = distance_cm = min_distance * conversion_factor
-            cv2.putText(frame, f"Distance: {distance_cm:.2f} cm", (cX - 20, cY - 40), cv2.FONT_HERSHEY_SIMPLEX, 0.5,
-                        (0, 0, 255), 2)
+    goal_angle = None
+    # Draw a line to the closest goal
+    if distance_to_left_goal < distance_to_right_goal:
+        angle_to_goal = goal_angle = calculate_angle(pink_center, goal_left)
+        goal_distance = distance_to_left_goal
+        draw_line_to_goals(frame, pink_center, goal_left, (0, 255, 255), thickness=2)
 
-            # Calculate and display angle between the two lines
-            angle_to_ball = ball_angle = calculate_angle(pink_center, closest_ball_center)
+        goal_point_angle = calculate_angle(pink_center, goal_point_left)
+        goal_point_distance = distance_to_left_goal_point
+    else:
+        angle_to_goal = goal_angle = calculate_angle(pink_center, goal_right)
+        goal_distance = distance_to_right_goal
+        draw_line_to_goals(frame, pink_center, goal_right, (0, 255, 255), thickness=2)
 
-            cv2.putText(frame, f"Angle to ball: {ball_angle:.2f}", (10, 50), cv2.FONT_HERSHEY_SIMPLEX,
-                        0.7, (255, 0, 0), 2)
+        goal_point_angle = calculate_angle(pink_center, goal_point_right)
+        goal_point_distance = distance_to_right_goal_point
 
-        ########################################### FINDING DISTANCE TO GOAL ##########################################
-
-        # Draw the goals on the frame
-        cv2.circle(frame, goal_left, radius=8, color=(0, 255, 255), thickness=-2)  # Yellow dot
-        cv2.circle(frame, goal_right, radius=8, color=(0, 255, 255), thickness=-2)  # Yellow dot
-
-        cv2.circle(frame, goal_point_left, radius=8, color=(0, 255, 255), thickness=-2)  # Yellow dot
-        cv2.circle(frame, goal_point_right, radius=8, color=(0, 255, 255), thickness=-2)  # Yellow dot
-
-        # Calculate distances to the goals
-        distance_to_left_goal = calculate_distance(pink_center, goal_left) * conversion_factor
-        distance_to_right_goal = calculate_distance(pink_center, goal_right) * conversion_factor
-
-        distance_to_left_goal_point = calculate_distance(pink_center, goal_point_left) * conversion_factor
-        distance_to_right_goal_point = calculate_distance(pink_center, goal_point_right) * conversion_factor
-
-        goal_angle = None
-        # Draw a line to the closest goal
-        if distance_to_left_goal < distance_to_right_goal:
-            angle_to_goal = goal_angle = calculate_angle(pink_center, goal_left)
-            goal_distance = distance_to_left_goal
-            draw_line_to_goals(frame, pink_center, goal_left, (0, 255, 255), thickness=2)
-
-            goal_point_angle = calculate_angle(pink_center, goal_point_left)
-            goal_point_distance = distance_to_left_goal_point
-        else:
-            angle_to_goal = goal_angle = calculate_angle(pink_center, goal_right)
-            goal_distance = distance_to_right_goal
-            draw_line_to_goals(frame, pink_center, goal_right, (0, 255, 255), thickness=2)
-
-            goal_point_angle = calculate_angle(pink_center, goal_point_right)
-            goal_point_distance = distance_to_right_goal_point
-
-        cv2.putText(frame, f"Angle to goal: {goal_angle:.2f}", (10, 70), cv2.FONT_HERSHEY_SIMPLEX,
+    cv2.putText(frame, f"Angle to goal: {goal_angle:.2f}", (10, 70), cv2.FONT_HERSHEY_SIMPLEX,
                     0.7, (255, 0, 0), 2)
-        cv2.putText(frame, f"distance to goal: {goal_distance:.2f}", (10, 90), cv2.FONT_HERSHEY_SIMPLEX,
+    cv2.putText(frame, f"distance to goal: {goal_distance:.2f}", (10, 90), cv2.FONT_HERSHEY_SIMPLEX,
                     0.7, (255, 0, 0), 2)
-
-    #cv2.imshow('orange', mask_white)
 
     cv2.imshow('All Contours', frame)
-
 
     if cv2.waitKey(1) & 0xFF == ord('q'):
         #flask_thread.join()
