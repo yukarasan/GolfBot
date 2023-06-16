@@ -75,6 +75,7 @@ def main():
     right_wheel = Motor(Port.B)
     conveyor = Motor(Port.D)
     spinner = Motor(Port.C)
+    color_sensor = ColorSensor(Port.S1)
 
     # Wheel diameter and axle track (in millimeters)
     wheel_diameter = 56
@@ -99,6 +100,8 @@ def main():
     spinner_thread.start()
 
     while spinner_thread.running and stopInstructions is not True:
+        check_for_red(color_sensor, robot)
+
         # Socket connection setup
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         # 10.209.234.177 || 172.20.10.4
@@ -230,6 +233,11 @@ def move(robot: DriveBase, distance):
 
 def stop(robot: DriveBase):
     robot.stop()
+
+
+def check_for_red(sensor: ColorSensor, robot: DriveBase):
+    if sensor.color() == Color.RED:
+        stop(robot=robot)
 
 
 # Run conveyor function to be started on a separate thread
