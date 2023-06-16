@@ -12,7 +12,6 @@ app = Flask(__name__)
 def flask_server():
     app.run(port=8081)
 
-
 @app.route("/")
 def determineNextMove():
     # if nuværende antalBolde == 5 || antal == 0 --> gå til goal, else --> gå til nærmeste bold
@@ -21,35 +20,30 @@ def determineNextMove():
         goal_instruction = determine_goal_instruction(angle_to_goal, angle_of_robot, goal_distance, distance_to_goal_point=goal_point_distance, angle_to_goal_point=goal_point_angle)
         data = {"instruction": goal_instruction[0],
                 "angle": "{:.2f}".format(goal_instruction[1]),
-                "distance": "{:.2f}".format(goal_instruction[2]),
+                "distance": "{:.2f}".format(goal_instruction[2] - 4),
                 "go to goal": "yes"
                 }
     else:
         data = {"instruction": determine_turn_direction(angle_to_ball, angle_of_robot, ball_distance),
                 "angle": "{:.2f}".format(calculate_shortest_angle(angle_of_robot, angle_to_ball)),
-                "distance": "{:.2f}".format(ball_distance),
+                "distance": "{:.2f}".format(ball_distance - 4),
                 "go to goal": "no"
                 }
 
     return jsonify(data)
 
-
 angle_to_ball = 0
 angle_of_robot = 0
 ball_distance = 0
-
 angle_to_goal = 0
 goal_distance = 0
-
 goal_point_distance = 0
 goal_point_angle = 0
 
 num_balls = None
 
-
 def flask_server():
     app.run(host="0.0.0.0", port=8081)
-
 
 cap = cv2.VideoCapture(0)
 
@@ -64,20 +58,11 @@ upper_white = np.array([180, 30, 255])
 #Range for red
 red_lower = np.array([0, 100, 100])
 red_upper = np.array([10, 255, 255])
-#rgb_color = np.uint8([[[199, 54, 52 ]]]) # given RGB color
-#hsv_color = cv2.cvtColor(rgb_color, cv2.COLOR_RGB2HSV)
-
-# assuming hsv_color is the color converted into HSV
-#h, s, v = hsv_color[0][0]
-#red_lower = np.array([h - 10, 100, 100])
-#red_upper = np.array([h + 10, 255, 255])
 
 # Define lower and upper bounds for orange color
 lower_orange = np.array([25, 50, 20])
 upper_orange = np.array([32, 110, 255])
-
 kernel = np.ones((5, 5), np.uint8)
-
 
 def calculate_angle_between_lines(p1, p2, p3, p4):
     # Calculate slopes
@@ -106,11 +91,9 @@ def calculate_angle_between_lines(p1, p2, p3, p4):
 
     return angle
 
-
 def calculate_distance(pt1, pt2):
     # Calculate Euclidean distance between two points
     return np.sqrt((pt1[0] - pt2[0]) ** 2 + (pt1[1] - pt2[1]) ** 2)
-
 
 def calculate_angle(center1, center2):
     x1, y1 = center1
@@ -156,7 +139,6 @@ def draw_line_to_goals(image, start, end, color, thickness=2):
 
     # Draw a line from start to end using cv2.line() function
     cv2.line(image, start, end, color, thickness)
-
 
 # Initialize conversion factor
 conversion_factor = None
@@ -281,8 +263,6 @@ while True:
     contours_pink = sorted(contours_pink, key=cv2.contourArea, reverse=True)
     contours_orange, _ = cv2.findContours(mask_orange, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
-    #cv2.imshow('orange count', mask_red)
-
     if contours_pink:
         M = cv2.moments(contours_pink[0])
         cX = int(M["m10"] / M["m00"])
@@ -303,8 +283,7 @@ while True:
         # Apply a blur to reduce noise
         image_blur = cv2.GaussianBlur(gray, (5, 5), 0)
 
-        circles = cv2.HoughCircles(image_blur, cv2.HOUGH_GRADIENT, dp=1, minDist=30, param1=50, param2=20, minRadius=14,
-                                  maxRadius=17)
+        circles = cv2.HoughCircles(image_blur, cv2.HOUGH_GRADIENT, dp=1, minDist=30, param1=55, param2=25, minRadius=12, maxRadius=17)
 
         num_balls = 0
         if circles is not None:
@@ -328,7 +307,6 @@ while True:
             for (x, y, r) in filtered_circles:
                 cv2.circle(frame, (x, y), r, (0, 255, 0), 2)
                 center = (int(x), int(y))
-                pixel_distance = calculate_distance(center, (cX, cY))
                 pixel_distance = calculate_distance(center, (cX, cY))
 
                 if pixel_distance < min_distance:
@@ -394,7 +372,6 @@ while True:
     cv2.imshow('All Contours', frame)
 
     if cv2.waitKey(1) & 0xFF == ord('q'):
-        #flask_thread.join()
         break
 
 cap.release()

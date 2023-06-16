@@ -45,11 +45,11 @@ def determine_goal_instruction(angle1, angle2, distance_to_goal, distance_to_goa
 
     shortest_angle = calculate_shortest_angle(angle1, angle2)
 
-    if distance_to_goal <= 18 and abs(shortest_angle) <= 12:
+    if distance_to_goal <= 18 and abs(shortest_angle) <= 12 or distance_to_goal <= 15 and abs(shortest_angle) <= 30:
         return (Instructions.SHOOT.value, 0.00, 0.00)
 
     #Deciding when to go to the goal point
-    elif distance_to_goal_point >= 15 and abs(shortest_angle) >= 45:
+    elif distance_to_goal_point >= 15 and abs(shortest_angle) >= 35:
         return (determine_turn_direction(angle_to_goal_point, angle2, distance_to_goal_point), calculate_shortest_angle(angle2, angle_to_goal_point), distance_to_goal_point)
 
     #Turn and drive towards the goal
