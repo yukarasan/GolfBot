@@ -15,6 +15,8 @@ import time
 # Global direction counter to keep track of how many times the robot has turned left or right
 direction_counter = 0
 stopInstructions = False
+going_to_goal = 0
+
 
 class ConveyorThread(Thread):
     def __init__(self, conveyor):
@@ -33,6 +35,7 @@ class ConveyorThread(Thread):
     def stop_conveyor(self):
         self.conveyor.stop()  # Stops the conveyor motor
 
+
 class SpinnerThreadInwards(Thread):
     def __init__(self, spinner):
         Thread.__init__(self)
@@ -42,7 +45,7 @@ class SpinnerThreadInwards(Thread):
 
     def run(self):
         while self.running:
-            self.spinner.run_angle(speed=-300, rotation_angle=self.rotation, then=Stop.COAST, wait=True)
+            self.spinner.run_angle(speed=-400, rotation_angle=self.rotation, then=Stop.COAST, wait=True)
 
     def stop(self):
         self.running = False
@@ -75,7 +78,7 @@ def main():
     right_wheel = Motor(Port.B)
     conveyor = Motor(Port.D)
     spinner = Motor(Port.C)
-    color_sensor = ColorSensor(Port.S1)
+    ultrasonic = UltrasonicSensor(Port.S1)
 
     # Wheel diameter and axle track (in millimeters)
     wheel_diameter = 56
@@ -89,8 +92,6 @@ def main():
     # ImageFile object to display the winning image when the robot reaches the end
     winning_image = ImageFile.THUMBS_UP
 
-    # release_conveyor(conveyor=conveyor)  # Release the conveyor belt
-
     # Start the conveyor belt thread
     conveyor_thread = ConveyorThread(conveyor)
     conveyor_thread.start()
@@ -99,8 +100,33 @@ def main():
     spinner_thread = SpinnerThreadInwards(spinner)
     spinner_thread.start()
 
-    while spinner_thread.running and stopInstructions is not True:
-        check_for_red(color_sensor, robot)
+    # Distance to stop at (4 cm)
+    stop_distance = 40
+    reverse_distance = -100
+
+    # Main loop
+    while True:
+        # Get the distance to the nearest object
+        distance = ultrasonic.distance()
+        print("Distance to wall:", distance)
+
+        # If an object is detected within the stop distance, stop and move backwards
+        if distance <= stop_distance or distance > 1500:
+            wait(500)  # Wait for 1 second
+            robot.straight(reverse_distance)
+        else:
+            # Move a proportion of the distance to the nearest object
+            forward_distance = distance * 0.5  # 50% of the distance to the object
+            robot.straight(forward_distance)
+
+    while stopInstructions is not True:
+        # Get the distance to the nearest object
+        distance = ultrasonic.distance()
+        print("Distance to wall:", distance)
+
+        # If an object is detected within the stop distance, stop the robot
+        if distance < stop_distance:
+            robot.straight(-stop_distance)
 
         # Socket connection setup
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -158,6 +184,16 @@ def process_instruction(
         conveyor_thread: ConveyorThread,
         spinner_thread: SpinnerThreadInwards
 ):
+    # if instruction "go to goal" is "yes" then stop the spinner
+    if instruction["go to goal"] == "yes":
+        global going_to_goal
+        going_to_goal += 1
+        if going_to_goal == 3:
+            spinner_thread.stop()
+            going_to_goal = 0
+    else:
+        going_to_goal = 0
+
     if instruction["instruction"] in ["Left", "Right"]:
 
         global direction_counter
@@ -173,6 +209,7 @@ def process_instruction(
         print("Inside else")
 
     if instruction["instruction"] == "Left":
+
         angle = float(instruction["angle"])
         distance = float(instruction["distance"])
 
@@ -199,23 +236,23 @@ def process_instruction(
         # If the distance is under 15, move backwards instead
         if distance < 0 and abs(angle) > 80:
             move(robot=robot, distance=-distance)
+            wait(500)  # Wait for 0.5 seconds
 
         # If the distance is over 25, move half the distance
         if distance > 35:
             move(robot=robot, distance=distance / 2)
+            wait(500)  # Wait for 0.5 seconds
         else:
             move(robot=robot, distance=distance)
+            wait(500)  # Wait for 0.5 seconds
     elif instruction["instruction"] == "Shoot":
         conveyor_thread.stop()  # Stop the conveyor belt thread
-
-        # stop the spinner thread
-        spinner_thread.stop_spinner()
-        spinner_thread.stop()
 
         release_conveyor(conveyor=conveyor)  # Release the conveyor belt
 
         global stopInstructions
         stopInstructions = True
+
 
 def turn(robot: DriveBase, angle):
     # Code to turn the robot left
