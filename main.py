@@ -14,6 +14,9 @@ import time
 
 # Global direction counter to keep track of how many times the robot has turned left or right
 direction_counter = 0
+stopInstructions = False
+going_to_goal = 0
+
 
 class ConveyorThread(Thread):
     def __init__(self, conveyor):
@@ -32,23 +35,20 @@ class ConveyorThread(Thread):
     def stop_conveyor(self):
         self.conveyor.stop()  # Stops the conveyor motor
 
+
 class SpinnerThreadInwards(Thread):
     def __init__(self, spinner):
         Thread.__init__(self)
         self.spinner = spinner
         self.running = True
-        self.rotation = 0  # this will keep track of the current rotation
+        self.rotation = 360  # one full rotation
 
     def run(self):
-        while self.running or self.rotation % 360 != 0:  # keep running until stop() is called and full rotation is complete
-            self.spinner.run_angle(speed=-300, rotation_angle=10)  # spin 10 degrees at a time
-            self.rotation += 10
-            self.rotation %= 360  # this ensures that rotation stays within 0-359
+        while self.running:
+            self.spinner.run_angle(speed=-400, rotation_angle=self.rotation, then=Stop.COAST, wait=True)
 
     def stop(self):
         self.running = False
-
-    def stop_spinner(self):
         self.spinner.stop()  # Stops the spinner motor
 
 
@@ -70,25 +70,6 @@ class SpinnerThreadOutwards(Thread):
         self.spinner.stop()  # Stops the spinner motor
 
 
-
-class SpinnerThreadOutwards(Thread):
-    def __init__(self, spinner):
-        Thread.__init__(self)
-        self.spinner = spinner
-        self.running = True
-
-    def run(self):
-        while self.running:
-            self.spinner.run(300)  # Run the spinner
-            time.sleep(0.1)  # Sleep for a short while to not hog the CPU
-
-    def stop(self):
-        self.running = False
-
-    def stop_spinner(self):
-        self.spinner.stop()  # Stops the spinner motor
-
-
 # This program requires LEGO EV3 MicroPython v2.0 or higher.
 def main():
     # Objects and setup
@@ -97,6 +78,7 @@ def main():
     right_wheel = Motor(Port.B)
     conveyor = Motor(Port.D)
     spinner = Motor(Port.C)
+    ultrasonic = UltrasonicSensor(Port.S1)
 
     # Wheel diameter and axle track (in millimeters)
     wheel_diameter = 56
@@ -110,8 +92,6 @@ def main():
     # ImageFile object to display the winning image when the robot reaches the end
     winning_image = ImageFile.THUMBS_UP
 
-    # release_conveyor(conveyor=conveyor)  # Release the conveyor belt
-
     # Start the conveyor belt thread
     conveyor_thread = ConveyorThread(conveyor)
     conveyor_thread.start()
@@ -120,7 +100,34 @@ def main():
     spinner_thread = SpinnerThreadInwards(spinner)
     spinner_thread.start()
 
+    # Distance to stop at (4 cm)
+    stop_distance = 40
+    reverse_distance = -100
+
+    # Main loop
     while True:
+        # Get the distance to the nearest object
+        distance = ultrasonic.distance()
+        print("Distance to wall:", distance)
+
+        # If an object is detected within the stop distance, stop and move backwards
+        if distance <= stop_distance or distance > 1500:
+            wait(500)  # Wait for 1 second
+            robot.straight(reverse_distance)
+        else:
+            # Move a proportion of the distance to the nearest object
+            forward_distance = distance * 0.5  # 50% of the distance to the object
+            robot.straight(forward_distance)
+
+    while stopInstructions is not True:
+        # Get the distance to the nearest object
+        distance = ultrasonic.distance()
+        print("Distance to wall:", distance)
+
+        # If an object is detected within the stop distance, stop the robot
+        if distance < stop_distance:
+            robot.straight(-stop_distance)
+
         # Socket connection setup
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         # 10.209.234.177 || 172.20.10.4
@@ -147,9 +154,7 @@ def main():
                     instruction=json_data,
                     conveyor=conveyor,
                     conveyor_thread=conveyor_thread,
-                    spinner_thread=spinner_thread,
-                    winning_sound=winning_sound,
-                    ev3=ev3
+                    spinner_thread=spinner_thread
                 )
             else:
                 print('Request failed.')
@@ -160,16 +165,35 @@ def main():
         finally:
             sock.close()
 
+    if spinner_thread.running:
+        spinner_thread.stop()
+
+    # Stop the conveyor belt thread
+    conveyor_thread.stop()
+
+    wait(2000)  # Wait for 2 seconds
+    ev3.speaker.play_file(winning_sound)  # Play the winning sound
+    ev3.screen.load_image(winning_image)  # Display the winning image
+    wait(2000)  # Wait for 5 seconds
+
 
 def process_instruction(
         robot: DriveBase,
         instruction,
         conveyor: Motor,
         conveyor_thread: ConveyorThread,
-        spinner_thread: SpinnerThreadInwards,
-        winning_sound: SoundFile,
-        ev3: EV3Brick
+        spinner_thread: SpinnerThreadInwards
 ):
+    # if instruction "go to goal" is "yes" then stop the spinner
+    if instruction["go to goal"] == "yes":
+        global going_to_goal
+        going_to_goal += 1
+        if going_to_goal == 3:
+            spinner_thread.stop()
+            going_to_goal = 0
+    else:
+        going_to_goal = 0
+
     if instruction["instruction"] in ["Left", "Right"]:
 
         global direction_counter
@@ -185,6 +209,7 @@ def process_instruction(
         print("Inside else")
 
     if instruction["instruction"] == "Left":
+
         angle = float(instruction["angle"])
         distance = float(instruction["distance"])
 
@@ -211,24 +236,22 @@ def process_instruction(
         # If the distance is under 15, move backwards instead
         if distance < 0 and abs(angle) > 80:
             move(robot=robot, distance=-distance)
+            wait(500)  # Wait for 0.5 seconds
 
         # If the distance is over 25, move half the distance
         if distance > 35:
             move(robot=robot, distance=distance / 2)
+            wait(500)  # Wait for 0.5 seconds
         else:
             move(robot=robot, distance=distance)
+            wait(500)  # Wait for 0.5 seconds
     elif instruction["instruction"] == "Shoot":
         conveyor_thread.stop()  # Stop the conveyor belt thread
 
-        # stop the spinner thread
-        spinner_thread.stop_spinner()
-        spinner_thread.stop()
-
         release_conveyor(conveyor=conveyor)  # Release the conveyor belt
-        # Play the winning sound
-        ev3.speaker.play_file(file=winning_sound)
-        # Display the winning image
-        ev3.screen.load_image(ImageFile.THUMBS_UP)
+
+        global stopInstructions
+        stopInstructions = True
 
 
 def turn(robot: DriveBase, angle):
@@ -247,6 +270,11 @@ def move(robot: DriveBase, distance):
 
 def stop(robot: DriveBase):
     robot.stop()
+
+
+def check_for_red(sensor: ColorSensor, robot: DriveBase):
+    if sensor.color() == Color.RED:
+        stop(robot=robot)
 
 
 # Run conveyor function to be started on a separate thread

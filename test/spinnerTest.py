@@ -10,27 +10,20 @@ from pybricks.media.ev3dev import SoundFile, ImageFile
 from threading import Thread
 
 
-# Ensure your necessary import statements are at the top of your file
-# ...
-
 class SpinnerThreadInwards(Thread):
     def __init__(self, spinner):
         Thread.__init__(self)
         self.spinner = spinner
         self.running = True
-        self.rotation = 0
+        self.rotation = 360  # one full rotation
 
     def run(self):
-        while self.running or self.rotation % 360 != 0:
-            self.spinner.run_angle(speed=-300, rotation_angle=10)
-            self.rotation += 10
-            self.rotation %= 360
+        while self.running:
+            self.spinner.run_angle(speed=-300, rotation_angle=self.rotation, then=Stop.COAST, wait=True)
 
     def stop(self):
         self.running = False
-
-    def stop_spinner(self):
-        self.spinner.stop()
+        self.spinner.stop()  # Stops the spinner motor
 
 
 def main():
@@ -44,14 +37,16 @@ def main():
     spinner_thread = SpinnerThreadInwards(spinner)
     spinner_thread.start()
 
-    # Let the spinner spin for 10 seconds
-    wait(10000)
+    numOfLoop = 0
+    while spinner_thread.running and numOfLoop < 5:
+        wait(1000)
+        numOfLoop += 1
+        print(numOfLoop)
 
-    # Stop the spinner thread
-    spinner_thread.stop()
+    if spinner_thread.running:
+        spinner_thread.stop()
 
-    # Wait until the spinner thread has fully stopped
-    spinner_thread.join()
+    wait(10000)  # Wait for 10 seconds
 
 
 if __name__ == "__main__":
