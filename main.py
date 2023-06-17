@@ -100,70 +100,57 @@ def main():
     spinner_thread = SpinnerThreadInwards(spinner)
     spinner_thread.start()
 
-    # Distance to stop at (4 cm)
-    stop_distance = 40
-    reverse_distance = -100
-
-    # Main loop
-    while True:
-        # Get the distance to the nearest object
-        distance = ultrasonic.distance()
-        print("Distance to wall:", distance)
-
-        # If an object is detected within the stop distance, stop and move backwards
-        if distance <= stop_distance or distance > 1500:
-            wait(500)  # Wait for 1 second
-            robot.straight(reverse_distance)
-        else:
-            # Move a proportion of the distance to the nearest object
-            forward_distance = distance * 0.5  # 50% of the distance to the object
-            robot.straight(forward_distance)
-
     while stopInstructions is not True:
-        # Get the distance to the nearest object
-        distance = ultrasonic.distance()
-        print("Distance to wall:", distance)
-
-        # If an object is detected within the stop distance, stop the robot
-        if distance < stop_distance:
-            robot.straight(-stop_distance)
-
         # Socket connection setup
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         # 10.209.234.177 || 172.20.10.4
         sock.connect(("192.168.1.215", 8081))
 
-        try:
-            # Send request
-            request = "GET / HTTP/1.1\r\nHost: 192.168.1.215\r\n\r\n"
-            sock.send(request.encode())
-            # Read response
-            response = ''
-            while True:
-                data = sock.recv(1024)
-                if not data:
-                    break
-                response += data.decode()
-            # Parse JSON if response is 200
-            header, _, body = response.partition('\r\n\r\n')
-            if '200 OK' in header:
-                json_data = json.loads(body)
-                print(json_data)
-                process_instruction(
-                    robot=robot,
-                    instruction=json_data,
-                    conveyor=conveyor,
-                    conveyor_thread=conveyor_thread,
-                    spinner_thread=spinner_thread
-                )
-            else:
-                print('Request failed.')
+        # Get the distance to the nearest object
+        distance = ultrasonic.distance()
+        print("Distance to wall:", distance)
 
-        except Exception as e:
-            print(e)
+        # Distance to stop at (4 cm)
+        stop_distance = 40
+        reverse_distance = -100  # Distance to move backwards (10 cm)
 
-        finally:
-            sock.close()
+        # If an object is detected within the stop distance, stop and move backwards
+        if distance <= stop_distance or distance > 2000:
+            wait(500)  # Wait for 1 second
+            robot.straight(reverse_distance)
+        else:
+            try:
+                # Send request
+                request = "GET / HTTP/1.1\r\nHost: 192.168.1.215\r\n\r\n"
+                sock.send(request.encode())
+                # Read response
+                response = ''
+                while True:
+                    data = sock.recv(1024)
+                    if not data:
+                        break
+                    response += data.decode()
+                # Parse JSON if response is 200
+                header, _, body = response.partition('\r\n\r\n')
+                if '200 OK' in header:
+                    json_data = json.loads(body)
+                    print(json_data)
+                    process_instruction(
+                        robot=robot,
+                        instruction=json_data,
+                        conveyor=conveyor,
+                        conveyor_thread=conveyor_thread,
+                        spinner_thread=spinner_thread,
+                        distance_to_wall=distance
+                    )
+                else:
+                    print('Request failed.')
+
+            except Exception as e:
+                print(e)
+
+            finally:
+                sock.close()
 
     if spinner_thread.running:
         spinner_thread.stop()
@@ -182,8 +169,13 @@ def process_instruction(
         instruction,
         conveyor: Motor,
         conveyor_thread: ConveyorThread,
-        spinner_thread: SpinnerThreadInwards
+        spinner_thread: SpinnerThreadInwards,
+        distance_to_wall: int
 ):
+    # Distance to stop at (4 cm)
+    stop_distance = 40
+    reverse_distance = -100  # Distance to move backwards (10 cm)
+
     # if instruction "go to goal" is "yes" then stop the spinner
     if instruction["go to goal"] == "yes":
         global going_to_goal
@@ -201,50 +193,88 @@ def process_instruction(
 
         print("Direction counter:", direction_counter)
 
-        if direction_counter >= 15:
+        if direction_counter >= 20:
             direction_counter = 0
-            move(robot=robot, distance=-18)  # move backwards
+
+            if distance_to_wall <= stop_distance or distance_to_wall > 2000:
+                wait(500)  # Wait for 1 second
+                robot.straight(reverse_distance)
+            else:
+                move(robot=robot, distance=-10)  # move backwards
     else:
         direction_counter = 0  # Reset the counter if the instruction is not "Left" or "Right"
-        print("Inside else")
 
     if instruction["instruction"] == "Left":
 
         angle = float(instruction["angle"])
         distance = float(instruction["distance"])
 
-        # If the distance is under 15, move backwards instead
-        if distance < 0 and abs(angle) > 80:
-            move(robot=robot, distance=-distance)
+        if distance_to_wall <= stop_distance or distance_to_wall > 2000:
+            wait(500)  # Wait for 1 second
+            robot.straight(reverse_distance)
+        else:
+            # If the distance is under 15, move backwards instead
+            if distance < 0 and abs(angle) > 80:
+                move(robot=robot, distance=reverse_distance)
 
-        # Turn the robot left
-        turn(robot=robot, angle=angle)
+            # Turn the robot left
+            turn(robot=robot, angle=angle)
+
     elif instruction["instruction"] == "Right":
         angle = float(instruction["angle"])
         distance = float(instruction["distance"])
 
-        # If the distance is under 15, move backwards instead
-        if distance < 0 and abs(angle) > 80:
-            move(robot=robot, distance=-distance)
+        if distance_to_wall <= stop_distance or distance_to_wall > 2000:
+            wait(500)  # Wait for 1 second
+            robot.straight(reverse_distance)
+        else:
 
-        # Turn the robot right
-        turn(robot=robot, angle=angle)
+            # If the distance is under 15, move backwards instead
+            if distance < 0 and abs(angle) > 80:
+                move(robot=robot, distance=reverse_distance)
+
+            # Turn the robot right
+            turn(robot=robot, angle=angle)
+
     elif instruction["instruction"] == "Forward":
         distance = float(instruction["distance"])
         angle = float(instruction["angle"])
 
-        # If the distance is under 15, move backwards instead
-        if distance < 0 and abs(angle) > 80:
-            move(robot=robot, distance=-distance)
-            wait(500)  # Wait for 0.5 seconds
+        print("Distance to wall:", distance_to_wall)
+        print("Distance to ball:", distance)
 
-        # If the distance is over 25, move half the distance
-        if distance > 35:
+        # If the distance to the wall is less than the stop distance or more than 2000, move in reverse
+        if distance_to_wall <= stop_distance or distance_to_wall > 2000:
+            wait(500)  # Wait for 1 second
+            robot.straight(reverse_distance)
+
+        # If the distance to the wall is somewhat the same at the distance to the ball, move half the distance
+        elif abs(distance_to_wall - (distance * 10)) <= 50:
+            print("Wall and ball are within similar range. Moving half of the distance")
             move(robot=robot, distance=distance / 2)
             wait(500)  # Wait for 0.5 seconds
+
+        # If the distance to the wall is less than or equal to 100 cm, move a different distance
+        elif distance_to_wall <= 300:
+            print("Moving half of distance to the wall")
+            move(robot=robot, distance=distance - 1)  # Move 2 cm less than the distance
+            wait(500)
+
+        # If none of the above conditions are met, perform these steps
         else:
-            move(robot=robot, distance=distance)
-            wait(500)  # Wait for 0.5 seconds
+            # If the distance is under 15 and absolute angle is over 80, move backwards instead
+            if distance < 0 and abs(angle) > 80:
+                move(robot=robot, distance=reverse_distance)
+                wait(500)  # Wait for 0.5 seconds
+
+            # If the distance to the ball is over 35, move half the distance
+            elif distance > 35:
+                move(robot=robot, distance=distance / 2)
+                wait(500)  # Wait for 0.5 seconds
+            else:
+                move(robot=robot, distance=distance)
+                wait(500)  # Wait for 0.5 seconds
+
     elif instruction["instruction"] == "Shoot":
         conveyor_thread.stop()  # Stop the conveyor belt thread
 

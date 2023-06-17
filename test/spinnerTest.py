@@ -9,7 +9,6 @@ from pybricks.media.ev3dev import SoundFile, ImageFile
 
 from threading import Thread
 
-
 class SpinnerThreadInwards(Thread):
     def __init__(self, spinner):
         Thread.__init__(self)
@@ -25,7 +24,6 @@ class SpinnerThreadInwards(Thread):
         self.running = False
         self.spinner.stop()  # Stops the spinner motor
 
-
 def main():
     # Initialize the EV3 Brick
     ev3 = EV3Brick()
@@ -39,15 +37,14 @@ def main():
 
     numOfLoop = 0
     while spinner_thread.running and numOfLoop < 5:
-        wait(1000)
+        wait(1000)  
         numOfLoop += 1
         print(numOfLoop)
 
     if spinner_thread.running:
         spinner_thread.stop()
-
+    
     wait(10000)  # Wait for 10 seconds
-
 
 if __name__ == "__main__":
     main()
