@@ -155,6 +155,8 @@ def main():
     # Stop the four_wheel_mechanism belt thread
     four_wheel_mechanism.stop()
 
+    # TODO: Remember to also stop the inwards spinner thread
+
     wait(1000)  # Wait for 1 second
     ev3.speaker.play_file(winning_sound)  # Play the winning sound
     ev3.screen.load_image(winning_image)  # Display the winning image
