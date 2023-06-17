@@ -234,7 +234,7 @@ while True:
 
     # Find contours for red object
     contours_red, _ = cv2.findContours(blur_red, cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE)
-    cv2.drawContours(frame, contours_red, -1, (0, 255, 0), 3)
+
 
     # Calculate conversion factor
     if conversion_factor is None and contours_red:
@@ -283,35 +283,24 @@ while True:
         # Apply a blur to reduce noise
         image_blur = cv2.GaussianBlur(gray, (5, 5), 0)
 
-        circles = cv2.HoughCircles(image_blur, cv2.HOUGH_GRADIENT, dp=1, minDist=30, param1=55, param2=25, minRadius=12, maxRadius=17)
+        circles = cv2.HoughCircles(image_blur, cv2.HOUGH_GRADIENT, dp=1, minDist=30, param1=55, param2=25, minRadius=13, maxRadius=18)
 
         num_balls = 0
         if circles is not None:
             # Convert the coordinates and radius of the circles to integers
             circles = np.round(circles[0, :]).astype(int)
 
-            # Filter for white colors and exclude dark colors
-            hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-            lower_white = np.array([0, 0, 100])  # Define lower threshold for white color
-            upper_white = np.array([179, 255, 255])  # Define upper threshold for white color
-            mask = cv2.inRange(hsv, lower_white, upper_white)
-
-            # Apply the mask to the circles and keep only the white circles
-            filtered_circles = []
-            for (x, y, r) in circles:
-                if mask[y, x] == 255:  # Check if the pixel is white
-                    filtered_circles.append((x, y, r))
-
             # Draw the filtered circles
-            num_balls = len(filtered_circles)
-            for (x, y, r) in filtered_circles:
-                cv2.circle(frame, (x, y), r, (0, 255, 0), 2)
-                center = (int(x), int(y))
-                pixel_distance = calculate_distance(center, (cX, cY))
+            num_balls = len(circles)
+            for (x, y, r) in circles:
+                if x >= goal_left[0] - 12 and x <= goal_right[0] + 12:
+                    cv2.circle(frame, (x, y), r, (0, 255, 0), 2)
+                    center = (int(x), int(y))
+                    pixel_distance = calculate_distance(center, (cX, cY))
 
-                if pixel_distance < min_distance:
-                    min_distance = pixel_distance
-                    closest_ball_center = center
+                    if pixel_distance < min_distance:
+                        min_distance = pixel_distance
+                        closest_ball_center = center
 
     pink_center_back = None
     if closest_ball_center is not None:
@@ -368,6 +357,8 @@ while True:
                     0.7, (255, 0, 0), 2)
     cv2.putText(frame, f"distance to goal: {goal_distance:.2f}", (10, 90), cv2.FONT_HERSHEY_SIMPLEX,
                     0.7, (255, 0, 0), 2)
+
+    cv2.drawContours(frame, contours_red, -1, (0, 0, 0), 3)
 
     cv2.imshow('All Contours', frame)
 

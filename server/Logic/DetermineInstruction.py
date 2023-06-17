@@ -31,7 +31,7 @@ def determine_turn_direction(angle1, angle2, distance):
 
     ##if vi er tæt på, så må vinklen godt være større
     ##if vi er meget tæt på, og vinklen er stor, så go backwards
-    if distance < 25 and abs(shortest_angle) <= 3.2:
+    if distance < 25 and abs(shortest_angle) <= 2.9:
         return Instructions.MOVE_FORWARD.value
     elif abs(shortest_angle) <= 2.5:
         return Instructions.MOVE_FORWARD.value
@@ -43,13 +43,15 @@ def determine_turn_direction(angle1, angle2, distance):
 #
 def determine_goal_instruction(angle1, angle2, distance_to_goal, distance_to_goal_point, angle_to_goal_point):
 
+    #angle mellem bold og robot
     shortest_angle = calculate_shortest_angle(angle1, angle2)
 
-    if distance_to_goal <= 18 and abs(shortest_angle) <= 12 or distance_to_goal <= 15 and abs(shortest_angle) <= 30:
-        return (Instructions.SHOOT.value, 0.00, 0.00)
+    #Hvornår robotten skal skyde
+    if (distance_to_goal <= 16 and abs(shortest_angle) <= 12) or (distance_to_goal <= 14 and abs(shortest_angle) <= 23):
+        return (Instructions.SHOOT.value, 4.00, 0.00)
 
     #Deciding when to go to the goal point
-    elif distance_to_goal_point >= 15 and abs(shortest_angle) >= 35:
+    elif distance_to_goal_point >= 15 and abs(shortest_angle) >= 63:
         return (determine_turn_direction(angle_to_goal_point, angle2, distance_to_goal_point), calculate_shortest_angle(angle2, angle_to_goal_point), distance_to_goal_point)
 
     #Turn and drive towards the goal
