@@ -109,6 +109,20 @@ def calculate_new_coordinates(center, angle, distance):
     return int(new_x), int(new_y)
 
 
+def shrink_contour(contour, shrink_ratio):
+    # Calculate the moments to get the center of the contour
+    M = cv2.moments(contour)
+    cx = int(M["m10"] / M["m00"])
+    cy = int(M["m01"] / M["m00"])
+
+    # Create a new contour by offsetting every point in the contour
+    new_contour = contour - [cx, cy]  # Move to origin
+    new_contour = new_contour * shrink_ratio  # Scale
+    new_contour = new_contour + [cx, cy]  # Move back to original position
+
+    return new_contour.astype(int)  # Ensure integer coordinates for OpenCV
+
+
 def draw_line(image, start, end, color, thickness=2):
     height, width = image.shape[:2]
 
@@ -357,6 +371,11 @@ while True:
                     0.7, (255, 0, 0), 2)
     cv2.putText(frame, f"distance to goal: {goal_distance:.2f}", (10, 90), cv2.FONT_HERSHEY_SIMPLEX,
                     0.7, (255, 0, 0), 2)
+
+    # Shrink the contour and draw it in a different color
+    shrink_ratio = 0.8  # Adjust this as necessary
+    contour_shrink = shrink_contour(contours_red, shrink_ratio)
+    cv2.drawContours(frame, [contour_shrink], -1, (255, 0, 0), 2)
 
     cv2.drawContours(frame, contours_red, -1, (0, 0, 0), 3)
 
