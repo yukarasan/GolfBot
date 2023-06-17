@@ -18,22 +18,22 @@ stopInstructions = False
 going_to_goal = 0
 
 
-class ConveyorThread(Thread):
-    def __init__(self, conveyor):
+class FourWheelMechanism(Thread):
+    def __init__(self, four_wheel_mechanism):
         Thread.__init__(self)
-        self.conveyor = conveyor
+        self.four_wheel_mechanism = four_wheel_mechanism
         self.running = True
 
     def run(self):
         while self.running:
-            self.conveyor.run(1000)  # Run the conveyor belt
+            self.four_wheel_mechanism.run(1000)  # Run the conveyor belt
             time.sleep(0.1)  # Sleep for a short while to not hog the CPU
 
     def stop(self):
         self.running = False
 
-    def stop_conveyor(self):
-        self.conveyor.stop()  # Stops the conveyor motor
+    def stop_four_wheel_mechanism(self):
+        self.four_wheel_mechanism.stop()  # Stops the conveyor motor
 
 
 class SpinnerThreadInwards(Thread):
@@ -41,32 +41,28 @@ class SpinnerThreadInwards(Thread):
         Thread.__init__(self)
         self.spinner = spinner
         self.running = True
-        self.rotation = 360  # one full rotation
 
     def run(self):
         while self.running:
-            self.spinner.run_angle(speed=-400, rotation_angle=self.rotation, then=Stop.COAST, wait=True)
+            self.spinner.run(speed=-300)  # Make the spinner run continuously
 
     def stop(self):
         self.running = False
         self.spinner.stop()  # Stops the spinner motor
 
 
-class SpinnerThreadOutwards(Thread):
+class SpinnerThreadOutward(Thread):
     def __init__(self, spinner):
         Thread.__init__(self)
         self.spinner = spinner
         self.running = True
-        self.rotation = 360  # one full rotation
 
     def run(self):
         while self.running:
-            self.spinner.run_angle(speed=300, rotation_angle=self.rotation)
+            self.spinner.run(speed=300)  # Make the spinner run continuously
 
     def stop(self):
         self.running = False
-
-    def stop_spinner(self):
         self.spinner.stop()  # Stops the spinner motor
 
 
@@ -76,7 +72,7 @@ def main():
     ev3 = EV3Brick()
     left_wheel = Motor(Port.A)
     right_wheel = Motor(Port.B)
-    conveyor = Motor(Port.D)
+    four_wheel_mechanism = Motor(Port.D)
     spinner = Motor(Port.C)
     ultrasonic = UltrasonicSensor(Port.S1)
 
@@ -92,9 +88,9 @@ def main():
     # ImageFile object to display the winning image when the robot reaches the end
     winning_image = ImageFile.THUMBS_UP
 
-    # Start the conveyor belt thread
-    conveyor_thread = ConveyorThread(conveyor)
-    conveyor_thread.start()
+    # Start the four_wheel_mechanism belt thread
+    four_wheel_mechanism_thread = FourWheelMechanism(four_wheel_mechanism)
+    four_wheel_mechanism_thread.start()
 
     # Start the spinner thread
     spinner_thread = SpinnerThreadInwards(spinner)
@@ -138,8 +134,9 @@ def main():
                     process_instruction(
                         robot=robot,
                         instruction=json_data,
-                        conveyor=conveyor,
-                        conveyor_thread=conveyor_thread,
+                        spinner=spinner,
+                        four_wheel_mechanism=four_wheel_mechanism,
+                        four_wheel_mechanism_thread=four_wheel_mechanism_thread,
                         spinner_thread=spinner_thread,
                         distance_to_wall=distance
                     )
@@ -155,20 +152,21 @@ def main():
     if spinner_thread.running:
         spinner_thread.stop()
 
-    # Stop the conveyor belt thread
-    conveyor_thread.stop()
+    # Stop the four_wheel_mechanism belt thread
+    four_wheel_mechanism.stop()
 
-    wait(2000)  # Wait for 2 seconds
+    wait(1000)  # Wait for 1 second
     ev3.speaker.play_file(winning_sound)  # Play the winning sound
     ev3.screen.load_image(winning_image)  # Display the winning image
-    wait(2000)  # Wait for 5 seconds
+    wait(10000)  # Wait for 10 seconds
 
 
 def process_instruction(
         robot: DriveBase,
         instruction,
-        conveyor: Motor,
-        conveyor_thread: ConveyorThread,
+        spinner: Motor,
+        four_wheel_mechanism: Motor,
+        four_wheel_mechanism_thread: FourWheelMechanism,
         spinner_thread: SpinnerThreadInwards,
         distance_to_wall: int
 ):
@@ -276,9 +274,13 @@ def process_instruction(
                 wait(500)  # Wait for 0.5 seconds
 
     elif instruction["instruction"] == "Shoot":
-        conveyor_thread.stop()  # Stop the conveyor belt thread
-
-        release_conveyor(conveyor=conveyor)  # Release the conveyor belt
+        four_wheel_mechanism_thread.stop()  # Stop the four_wheel_mechanism thread
+        # Start the outward spinner thread
+        spinner_thread = SpinnerThreadOutward(spinner=spinner)
+        spinner_thread.start()
+        
+        # Release the four_wheel_mechanism
+        release_four_wheel_mechanism(four_wheel_mechanism=four_wheel_mechanism) 
 
         global stopInstructions
         stopInstructions = True
@@ -313,9 +315,9 @@ def run_conveyor(conveyor: Motor):
     conveyor.run_time(speed=1000, time=10000 * 48)  # Run the conveyor belt for 10 seconds * 48 = 480 seconds
 
 
-def release_conveyor(conveyor: Motor):
-    print("Releasing conveyor")
-    conveyor.run_time(speed=-1000, time=10000)  # Run the conveyor belt for 10 seconds
+def release_four_wheel_mechanism(four_wheel_mechanism: Motor):
+    print("Releasing balls")
+    four_wheel_mechanism.run_time(speed=-1000, time=10000)  # Run the four wheel mechanism for 10 seconds
 
 
 def play_winning_sound(ev3: EV3Brick, soundfile):
