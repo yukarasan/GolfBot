@@ -3,19 +3,29 @@ This project demonstrates a LEGO EV3 robot that can pick up balls and navigate o
 
 ![image](https://github.com/yukarasan/GolfBot/assets/91070526/cdbf89ed-270c-4629-abbc-d01c4f72340b)
 
-## Features (as of 06-06-2023)
+[Watch the video](https://www.youtube.com/watch?v=your-video-id)
 
-1. LEGO EV3 robot with a conveyor belt mechanism to pick up balls.
-2. A server that sends instructions to the robot, such as `"pick_balls"` or `"drive_straight"`.
-3. Real-time ball detection using OpenCV.
+
+## Features (as of 17-06-2023)
+
+1. LEGO EV3 robot with a four-wheel mechanism to pick up balls, and a fork mechanism to push balls into the picker. 
+2. A server that sends instructions to the robot, such as `"Forward"`, `"Left"`, `"Right"` or `"Shoot"`, with their associated data such as `"angle"`, `"distance"` and more.
+3. A Client that can request instructions to the server, and use the recieved data to perform different operations depending on the recieved data. 
+4. Real-time ball detection using OpenCV.
    * Orange and white table tennis balls.
-4. Direction and position of robot using angle calculations.
-5. Direction and position of balls using angle calculations and distance calculation.
-6. Finding the ball closest to the robot.
-7. Direction and position of goals using angle calculations and distance calculation.
-8. A conversion factor which is calculated to convert pixel distances to real-world distances (in centimeters).
-   * Based on known size of the field.
-9. ??????????????????
+5. Direction and position of robot using angle calculations.
+6. Direction and position of balls relative to the robot using angle calculations and distance calculation.
+7. Finding the ball closest to the robot.
+8. Direction and position of goals using angle calculations and distance calculation.
+9. Aligning the position of the robot relative to objects positions. Examples: 
+   * Going to the goal, the robot alligns itself in front of the goal
+   * Going after a ball close to the wall or corner, the robot alligns itself in front of the ball witin a given angle.
+10. A conversion factor which is calculated to convert pixel distances to real-world distances (in centimeters).
+    * Based on known size of the field.
+11. Avoiding walls by using a ultrasonic sensor that sends sound waves to determine the distance to a wall.
+    * This is achived by making the robot move different distances depending on the distance to the wall.  
+12. Avoiding the detection of balls outside the borders of the course.
+13. When scoring, the robot will play a winning sound of victory!
 
 ## Requirements
 
@@ -24,8 +34,11 @@ This project demonstrates a LEGO EV3 robot that can pick up balls and navigate o
 - OpenCV 4.x.
 - Numpy.
 - Math.
+- Thread.
+- time.
 - Flask (server).
-- requests (client).
+- jsonfy (server).
+- socket (client).
 - Enum (used to determine instructions).
 - A working camera connected to the computer/program running the "server".
    * For Windows, remember to change the code: `cap = cv2.VideoCapture(0)` to `cap = cv2.VideoCapture(1)`.
@@ -34,15 +47,10 @@ This project demonstrates a LEGO EV3 robot that can pick up balls and navigate o
 
 1. Clone this repository.
 2. Set up your LEGO EV3 robot with the necessary motors and sensors. 
-    * Left wheel (motor port C)
-    * Right wheel (Motor port B)
-    * Conveyor belt (Motor port D)
+    * Left wheel (motor port.A)
+    * Right wheel (Motor port.B)
+    * Spinner mechanism (Motor port.C)
+    * Four-wheel mechanism (Motor port.D)
+    * Ultrasonic sound wave sensor (Port.S1)
 4. Run the server code on your computer, to get the IP address and port number. 
 5. Run the robot code on your EV3 brick by using an IDE such as Visual Studio Code.
-
-## Usage
-
-The robot will receive instructions from the server and execute them. It can perform the following tasks:
-
-- Picking up balls: ??????????????????
-- Driving straight: The robot will simply drive straight for a specified distance.
