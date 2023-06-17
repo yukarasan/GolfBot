@@ -5,25 +5,52 @@ from flask import Flask, jsonify
 import threading
 
 from server.Logic.DetermineInstruction import determine_turn_direction, \
-    calculate_shortest_angle, determine_goal_instruction
+    calculate_shortest_angle, determine_goal_instruction, ball_instruction
 
 app = Flask(__name__)
 
 def flask_server():
     app.run(port=8081)
 
+
+def is_point_inside_squares(point, square1_top_left, square1_bottom_right, square2_top_left, square2_bottom_right):
+    #Check if a point is inside any of the provided squares.
+    #Returns: True if the point is inside any of the squares, False otherwise
+    if (
+            (square1_top_left[0] <= point[0] <= square1_bottom_right[0] and
+             square1_top_left[1] <= point[1] <= square1_bottom_right[1]) or
+            (square2_top_left[0] <= point[0] <= square2_bottom_right[0] and
+             square2_top_left[1] <= point[1] <= square2_bottom_right[1])
+    ):
+        return True
+    else:
+        return False
+
 @app.route("/")
 def determineNextMove():
     # if nuværende antalBolde == 5 || antal == 0 --> gå til goal, else --> gå til nærmeste bold
     #if num_balls_white + num_balls_orange == 5 or num_balls_white + num_balls_orange == 0:
     if num_balls == 0:
-        goal_instruction = determine_goal_instruction(angle_to_goal, angle_of_robot, goal_distance, distance_to_goal_point=goal_point_distance, angle_to_goal_point=goal_point_angle)
+        goal_instruction = determine_goal_instruction(angle_to_goal,
+                                                      angle_of_robot,
+                                                      goal_distance,
+                                                      distance_to_goal_point=goal_point_distance,
+                                                      angle_to_goal_point=goal_point_angle,
+                                                      robot_in_squares=robot_in_squares
+                                                      )
         data = {"instruction": goal_instruction[0],
                 "angle": "{:.2f}".format(goal_instruction[1]),
                 "distance": "{:.2f}".format(goal_instruction[2] - 4),
                 "go to goal": "yes"
                 }
     else:
+        #ball_instruction = ball_instruction(angle_of_robot=angle_of_robot,
+         #                                     angle_of_ball=angle_to_ball,
+          #                                    distance_to_ball= ball_distance,
+           #                                   angle_of_ball_point=angle_of_ball_point,
+            #                                  distance_to_ball_point=distance_to_ball_point,
+             #                                 ball_point_coordinates= ball_point
+              #                                )
         data = {"instruction": determine_turn_direction(angle_to_ball, angle_of_robot, ball_distance),
                 "angle": "{:.2f}".format(calculate_shortest_angle(angle_of_robot, angle_to_ball)),
                 "distance": "{:.2f}".format(ball_distance - 4),
@@ -39,6 +66,14 @@ angle_to_goal = 0
 goal_distance = 0
 goal_point_distance = 0
 goal_point_angle = 0
+ball_point = (0, 0)
+
+distance_to_ball_point = 0
+angle_of_ball_point = 0
+
+robot_in_squares = False
+
+pink_center_back = None
 
 num_balls = None
 
@@ -58,6 +93,7 @@ upper_white = np.array([180, 30, 255])
 #Range for red
 red_lower = np.array([0, 100, 100])
 red_upper = np.array([10, 255, 255])
+a = 0
 
 # Define lower and upper bounds for orange color
 lower_orange = np.array([25, 50, 20])
@@ -107,20 +143,6 @@ def calculate_new_coordinates(center, angle, distance):
     new_x = x - distance * math.cos(angle_radians)
     new_y = y - distance * math.sin(angle_radians)
     return int(new_x), int(new_y)
-
-
-def shrink_contour(contour, shrink_ratio):
-    # Calculate the moments to get the center of the contour
-    M = cv2.moments(contour)
-    cx = int(M["m10"] / M["m00"])
-    cy = int(M["m01"] / M["m00"])
-
-    # Create a new contour by offsetting every point in the contour
-    new_contour = contour - [cx, cy]  # Move to origin
-    new_contour = new_contour * shrink_ratio  # Scale
-    new_contour = new_contour + [cx, cy]  # Move back to original position
-
-    return new_contour.astype(int)  # Ensure integer coordinates for OpenCV
 
 
 def draw_line(image, start, end, color, thickness=2):
@@ -178,6 +200,31 @@ while True:
 
     goal_point_left = (1200 // 2, frame_height // 2)  # Left side goal
     goal_point_right = (frame_width - 1 - 1200 // 2, frame_height // 2)  # Right side goal
+    ####
+    # here are the rectangle before the goals
+
+    rect_width = 350
+    rect_height = 120
+
+    # Calculate the coordinates for the left-side goal rectangle
+    left_rect_x = goal_point_left[0] - rect_width // 2
+    left_rect_y = goal_point_left[1] - rect_height // 2
+    left_rect_top_left = (left_rect_x - 50, left_rect_y)
+    left_rect_bottom_right = (left_rect_x + rect_width - 50, left_rect_y + rect_height)
+
+    # Draw the left-side goal rectangle
+    cv2.rectangle(frame, left_rect_top_left, left_rect_bottom_right, (0, 0, 0), 2)
+
+    # Calculate the coordinates for the right-side goal rectangle
+    right_rect_x = goal_point_right[0] - rect_width // 2
+    right_rect_y = goal_point_right[1] - rect_height // 2
+    right_rect_top_left = (right_rect_x + 50, right_rect_y)
+    right_rect_bottom_right = (right_rect_x + rect_width + 50, right_rect_y + rect_height)
+
+    # Draw the right-side goal rectangle
+    cv2.rectangle(frame, right_rect_top_left, right_rect_bottom_right, (0, 0, 0), 2)
+
+    ####
 
     hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
@@ -230,25 +277,19 @@ while True:
             draw_line(frame, pink_center, green_center, (0, 255, 0), thickness=2)
 
             # Display the angle on the frame
-            cv2.putText(frame, "Robot angle: {:.2f}".format(robot_angle), (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7,
-                        (0, 255, 0), 2)
+            cv2.putText(frame, "Robot angle: {:.2f}".format(robot_angle), (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
 
     # Apply morphological operations
     mask_green = cv2.erode(mask_green, kernel, iterations=1)
     mask_green = cv2.dilate(mask_green, kernel, iterations=1)
-    mask_white = cv2.erode(mask_white, kernel, iterations=1)
-    mask_white = cv2.dilate(mask_white, kernel, iterations=1)
     mask_red = cv2.erode(mask_red, kernel, iterations=1)
     mask_red = cv2.dilate(mask_red, kernel, iterations=1)
-    mask_orange = cv2.erode(mask_orange, kernel, iterations=1)
-    mask_orange = cv2.dilate(mask_orange, kernel, iterations=1)
 
     #Blur mask for red object
     blur_red = cv2.blur(mask_red, (14, 14))
 
     # Find contours for red object
     contours_red, _ = cv2.findContours(blur_red, cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE)
-
 
     # Calculate conversion factor
     if conversion_factor is None and contours_red:
@@ -282,8 +323,7 @@ while True:
         cX = int(M["m10"] / M["m00"])
         cY = int(M["m01"] / M["m00"])
         cv2.circle(frame, (cX, cY), 7, (255, 255, 255), -1)
-        cv2.putText(frame, f"centroid {cX}, {cY}", (cX - 20, cY - 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255),
-                    2)
+        cv2.putText(frame, f"centroid {cX}, {cY}", (cX - 20, cY - 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
 
         # Find white object and draw minimum enclosing circle
         contours_white, _ = cv2.findContours(mask_white, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -299,15 +339,19 @@ while True:
 
         circles = cv2.HoughCircles(image_blur, cv2.HOUGH_GRADIENT, dp=1, minDist=30, param1=55, param2=25, minRadius=13, maxRadius=18)
 
+        cv2.line(frame, (0, 200), (frame.shape[1], 200), (255, 0, 0), 3)  # Line at y = 100
+        cv2.line(frame, (0, 870), (frame.shape[1], 870), (255, 0, 0), 3)  # Line at y = 300
+
         num_balls = 0
         if circles is not None:
             # Convert the coordinates and radius of the circles to integers
             circles = np.round(circles[0, :]).astype(int)
 
-            # Draw the filtered circles
-            num_balls = len(circles)
+            # Draw the circles
+            num_balls = 0
             for (x, y, r) in circles:
                 if x >= goal_left[0] - 12 and x <= goal_right[0] + 12:
+                    num_balls += 1
                     cv2.circle(frame, (x, y), r, (0, 255, 0), 2)
                     center = (int(x), int(y))
                     pixel_distance = calculate_distance(center, (cX, cY))
@@ -316,7 +360,41 @@ while True:
                         min_distance = pixel_distance
                         closest_ball_center = center
 
-    pink_center_back = None
+            # Check if the ball is within the desired y-coordinate range
+            if closest_ball_center is not None:
+                if closest_ball_center[1] <= 200 or closest_ball_center[1] >= 870:
+
+                # Find the closest line on the y-axis
+                    if abs(closest_ball_center[1] - 200) < abs(closest_ball_center[1] - 870):
+                        closest_line = (closest_ball_center[0], 200)
+                    else:
+                        closest_line = (closest_ball_center[0], 870)
+
+                        # Calculate the slope of the line perpendicular to the y-axis
+                    if closest_ball_center[0] != closest_line[0]:
+                        slope = -1 / ((closest_line[1] - closest_ball_center[1]) / (closest_line[0] - closest_ball_center[0]))
+                    else: slope = float('inf')
+
+                    # Calculate the intercept of the perpendicular line
+                    intercept = closest_ball_center[1] - slope * closest_ball_center[0]
+
+                    # Find the intersection point between the perpendicular line and the closest line
+                    if slope != float('inf'):
+                        intersect_x = (closest_line[1] - intercept) / slope
+                        intersect_y = closest_line[1]
+                    else:
+                        intersect_x = closest_ball_center[0]
+                        intersect_y = closest_line[1]
+
+                    # Draw a line from the ball to the closest line on the y-axis (perpendicular line)
+                    cv2.line(frame, closest_ball_center, (int(intersect_x), int(intersect_y)), (0, 0, 255), 2)
+                    ball_point = (int(intersect_x), int(intersect_y))
+                else:
+                    ball_point = (int(0), int(0))
+
+    back_distance = 100
+    pink_center_back = calculate_new_coordinates(pink_center, angle_of_robot, back_distance)
+
     if closest_ball_center is not None:
         # Draw a line between centroid of green object and center of the closest white ball
         cv2.line(frame, (cX, cY), closest_ball_center, (0, 0, 255), 2)
@@ -325,14 +403,19 @@ while True:
         ball_distance = distance_cm = min_distance * conversion_factor
         cv2.putText(frame, f"Distance: {distance_cm:.2f} cm", (cX - 20, cY - 40), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
 
-        back_distance = 100
-        pink_center_back = calculate_new_coordinates(pink_center, angle_of_robot, back_distance)
-
         cv2.circle(frame, pink_center_back, 10, (255, 0, 255), -1)
         # Calculate and display angle between the two lines
         angle_to_ball = ball_angle = calculate_angle(pink_center_back, closest_ball_center)
 
         cv2.putText(frame, f"Angle to ball: {ball_angle:.2f}", (10, 50), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 0, 0), 2)
+
+    #Keeping track of whether the robot is in the squares or not
+    robot_in_squares = is_point_inside_squares(pink_center, left_rect_top_left, left_rect_bottom_right, right_rect_top_left, right_rect_bottom_right)
+    #print(robot_in_squares)
+    #Distance to ball point
+    if closest_ball_center is not None:
+        distance_to_ball_point = calculate_distance(pink_center_back, ball_point) * conversion_factor
+        angle_of_ball_point = calculate_angle(pink_center_back, ball_point)
 
     ########################################### FINDING DISTANCE TO GOAL ##########################################
 
@@ -371,11 +454,6 @@ while True:
                     0.7, (255, 0, 0), 2)
     cv2.putText(frame, f"distance to goal: {goal_distance:.2f}", (10, 90), cv2.FONT_HERSHEY_SIMPLEX,
                     0.7, (255, 0, 0), 2)
-
-    # Shrink the contour and draw it in a different color
-    shrink_ratio = 0.8  # Adjust this as necessary
-    contour_shrink = shrink_contour(contours_red, shrink_ratio)
-    cv2.drawContours(frame, [contour_shrink], -1, (255, 0, 0), 2)
 
     cv2.drawContours(frame, contours_red, -1, (0, 0, 0), 3)
 
