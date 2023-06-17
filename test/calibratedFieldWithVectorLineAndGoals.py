@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 import math
-from handleObstalcles import avoid_obstacle, is_obstacle, detect_obstacle
+from handleObstalcles import avoid_obstacle, is_obstacle, detect_obstacle, obstacle_center
 
 from flask import Flask, jsonify
 import threading
@@ -11,6 +11,7 @@ from server.Logic.DetermineInstruction import determine_turn_direction, \
 
 app = Flask(__name__)
 global pink_center, closest_ball_center
+
 
 def flask_server():
     app.run(port=8081)
@@ -22,21 +23,44 @@ def determineNextMove():
 
     # if nuværende antalBolde == 5 || antal == 0 --> gå til goal, else --> gå til nærmeste bold
     if num_balls_white + num_balls_orange == 5 or num_balls_white + num_balls_orange == 0:
-        data = {"instruction": determine_goal_instruction(angle_to_goal, angle_of_robot, goal_distance),
-                "angle": "{:.2f}".format(calculate_shortest_angle(angle_of_robot, angle_to_goal)),
-                "distance": "{:.2f}".format(goal_distance),
-                "0 balls=": "yes"
-                }
+
+        # den rammer forhindring på vej til mål.
+        if is_obstacle(pink_center, target_goal):
+            obstacle_point = avoid_obstacle(green_center, target_goal, obstacle_center)
+            angle_to_obstacle = calculate_angle(green_center, obstacle_point)
+            data = {"instruction": determine_turn_direction(angle_to_obstacle, angle_of_robot),
+                    "angle": "{:.2f}".format(calculate_shortest_angle(angle_of_robot, angle_to_obstacle)),
+                    "distance": "{:.2f}".format(determine_distance_to_obstacle(green_center, obstacle_point)),
+                    "0 balls=": "no"
+                    }
+        else:
+            data = {"instruction": determine_goal_instruction(angle_to_goal, angle_of_robot, goal_distance),
+                    "angle": "{:.2f}".format(calculate_shortest_angle(angle_of_robot, angle_to_goal)),
+                    "distance": "{:.2f}".format(goal_distance),
+                    "0 balls=": "yes"
+                    }
     else:
-        data = {"instruction": determine_turn_direction(angle_to_ball, angle_of_robot),
-                "angle": "{:.2f}".format(calculate_shortest_angle(angle_of_robot, angle_to_ball)),
-                "distance": "{:.2f}".format(ball_distance),
-                "0 balls=": "no"
-                }
+
+        if is_obstacle(pink_center, closest_ball_center):
+            obstacle_point = avoid_obstacle(green_center, closest_ball_center, obstacle_center)
+            angle_to_obstacle = calculate_angle(green_center, obstacle_point)
+            # den rammer forhindring på vej til bold.
+            data = {"instruction": determine_turn_direction(angle_to_obstacle, angle_of_robot),
+                    "angle": "{:.2f}".format(calculate_shortest_angle(angle_of_robot, angle_to_obstacle)),
+                    "distance": "{:.2f}".format(determine_distance_to_obstacle(green_center, obstacle_point)),
+                    "0 balls=": "no"
+                    }
+        else:
+            data = {"instruction": determine_turn_direction(angle_to_ball, angle_of_robot),
+                    "angle": "{:.2f}".format(calculate_shortest_angle(angle_of_robot, angle_to_ball)),
+                    "distance": "{:.2f}".format(ball_distance),
+                    "0 balls=": "no"
+                    }
 
     return jsonify(data)
 
 
+angle_to_obstacle = 0
 angle_to_ball = 0
 angle_of_robot = 0
 ball_distance = 0
@@ -47,6 +71,7 @@ goal_distance = 0
 num_balls_white = None
 num_balls_orange = None
 
+target_goal = None
 
 def flask_server():
     app.run(host="0.0.0.0", port=8081)
@@ -62,16 +87,16 @@ upper_green = np.array([80, 255, 255], dtype=np.uint8)
 lower_white = np.array([0, 0, 200])
 upper_white = np.array([180, 30, 255])
 
-#Range for red
+# Range for red
 red_lower = np.array([0, 100, 100])
 red_upper = np.array([10, 255, 255])
-#rgb_color = np.uint8([[[199, 54, 52 ]]]) # given RGB color
-#hsv_color = cv2.cvtColor(rgb_color, cv2.COLOR_RGB2HSV)
+# rgb_color = np.uint8([[[199, 54, 52 ]]]) # given RGB color
+# hsv_color = cv2.cvtColor(rgb_color, cv2.COLOR_RGB2HSV)
 
 # assuming hsv_color is the color converted into HSV
-#h, s, v = hsv_color[0][0]
-#red_lower = np.array([h - 10, 100, 100])
-#red_upper = np.array([h + 10, 255, 255])
+# h, s, v = hsv_color[0][0]
+# red_lower = np.array([h - 10, 100, 100])
+# red_upper = np.array([h + 10, 255, 255])
 
 # Define lower and upper bounds for orange color
 lower_orange = np.array([20, 100, 100])
@@ -112,6 +137,9 @@ def calculate_distance(pt1, pt2):
     # Calculate Euclidean distance between two points
     return np.sqrt((pt1[0] - pt2[0]) ** 2 + (pt1[1] - pt2[1]) ** 2)
 
+def determine_distance_to_obstacle(robot, obstacle_point):
+    return calculate_distance(robot, obstacle_point) * conversion_factor
+
 
 def calculate_angle(center1, center2):
     x1, y1 = center1
@@ -144,7 +172,7 @@ def draw_line(image, start, end, color, thickness=2):
 
 
 def draw_line_to_goals(image, start, end, color, thickness=2):
-    global pink_center, closest_ball_center
+    global pink_center, closest_ball_center, target_goal
 
     # Validate the image input
     if len(image.shape) < 2:
@@ -158,8 +186,8 @@ def draw_line_to_goals(image, start, end, color, thickness=2):
 conversion_factor = None
 
 # Create and start the Flask server in a separate thread
-#flask_thread = threading.Thread(target=flask_server)
-#flask_thread.start()
+# flask_thread = threading.Thread(target=flask_server)
+# flask_thread.start()
 
 while True:
     ret, frame = cap.read()
@@ -219,7 +247,7 @@ while True:
         if pink_moment["m00"] != 0 and green_moment["m00"] != 0:
             pink_center = (int(pink_moment["m10"] / pink_moment["m00"]), int(pink_moment["m01"] / pink_moment["m00"]))
             green_center = (
-            int(green_moment["m10"] / green_moment["m00"]), int(green_moment["m01"] / green_moment["m00"]))
+                int(green_moment["m10"] / green_moment["m00"]), int(green_moment["m01"] / green_moment["m00"]))
 
             # Calculate the angle between the centers of blue and green rectangles
             angle_of_robot = robot_angle = calculate_angle(pink_center, green_center)
@@ -241,12 +269,12 @@ while True:
     mask_orange = cv2.erode(mask_orange, kernel, iterations=1)
     mask_orange = cv2.dilate(mask_orange, kernel, iterations=1)
 
-    #Blur mask for red object
+    # Blur mask for red object
     blur_red = cv2.blur(mask_red, (14, 14))
 
     # Find contours for red object
     contours_red, _ = cv2.findContours(blur_red, cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE)
-    #cv2.drawContours(frame, contours_red, -1, (0, 255, 0), 3)
+    # cv2.drawContours(frame, contours_red, -1, (0, 255, 0), 3)
 
     # Calculate conversion factor
     if conversion_factor is None and contours_red:
@@ -275,7 +303,7 @@ while True:
     contours_green = sorted(contours_green, key=cv2.contourArea, reverse=True)
     contours_orange, _ = cv2.findContours(mask_orange, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
-    #cv2.imshow('orange count', mask_red)
+    # cv2.imshow('orange count', mask_red)
 
     if contours_green:
         M = cv2.moments(contours_green[0])
@@ -314,7 +342,6 @@ while True:
                         min_distance = pixel_distance
                         closest_ball_center = center
 
-
         num_balls_orange = 0
 
         for cnt in contours_orange:
@@ -350,7 +377,6 @@ while True:
                         closest_orange_ball_center = center
 
         if closest_ball_center is not None:
-
             # Draw a line between centroid of green object and center of the closest white ball
             cv2.line(frame, (cX, cY), closest_ball_center, (0, 0, 255), 2)
 
@@ -379,10 +405,12 @@ while True:
         goal_angle = None
         # Draw a line to the closest goal
         if distance_to_left_goal < distance_to_right_goal:
+            target_goal = goal_left
             draw_line_to_goals(frame, green_center, goal_left, (0, 255, 255), thickness=2)
             goal_distance = distance_to_left_goal
             angle_to_goal = goal_angle = calculate_angle(green_center, goal_left)
         else:
+            target_goal = goal_right
             angle_to_goal = goal_angle = calculate_angle(green_center, goal_right)
             goal_distance = distance_to_right_goal
             draw_line_to_goals(frame, green_center, goal_right, (0, 255, 255), thickness=2)
@@ -399,9 +427,8 @@ while True:
     cv2.imshow('All Contours', frame_with_contours)
     cv2.imshow('orange', mask_white)
 
-
     if cv2.waitKey(1) & 0xFF == ord('q'):
-        #flask_thread.join()
+        # flask_thread.join()
         break
 
 cap.release()

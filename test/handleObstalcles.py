@@ -3,6 +3,7 @@ import numpy as np
 
 global top_left, top_right, bottom_right, bottom_left
 global obstacle_points
+global obstacle_center
 
 
 # skal måske ændres ift hvordan koordinaterne er for framen.
@@ -38,7 +39,7 @@ def is_obstacle(line_start, line_end):
 
 
 def draw_rect_and_center(image, contour):
-    global top_left, top_right, bottom_right, bottom_left
+    global top_left, top_right, bottom_right, bottom_left, obstacle_center
     global obstacle_points
 
     # Find the minimum bounding rectangle that encloses the contour
@@ -49,6 +50,7 @@ def draw_rect_and_center(image, contour):
     # Calculate the center of the bounding rectangle
     center_x = int(rect[0][0])
     center_y = int(rect[0][1])
+    obstacle_center = [center_x,center_y]
 
     # Calculate the rotation angle and scale factor
     angle = 45
