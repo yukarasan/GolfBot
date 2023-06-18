@@ -14,10 +14,13 @@ import time
 
 # Global direction counter to keep track of how many times the robot has turned left or right
 direction_counter = 0
+# Global variable to keep track of whether the robot has reached the end
 stopInstructions = False
+# Global variable to keep track of whether the robot is going to the goal
 going_to_goal = 0
 
 
+# Thread for the four_wheel_mechanism belt
 class FourWheelMechanism(Thread):
     def __init__(self, four_wheel_mechanism):
         Thread.__init__(self)
@@ -36,6 +39,7 @@ class FourWheelMechanism(Thread):
         self.four_wheel_mechanism.stop()  # Stops the conveyor motor
 
 
+# Thread for the spinner that spins inwards
 class SpinnerThreadInwards(Thread):
     def __init__(self, spinner):
         Thread.__init__(self)
@@ -51,6 +55,7 @@ class SpinnerThreadInwards(Thread):
         self.spinner.stop()  # Stops the spinner motor
 
 
+# Thread for the spinner that spins outwards
 class SpinnerThreadOutward(Thread):
     def __init__(self, spinner):
         Thread.__init__(self)
@@ -157,6 +162,7 @@ def main():
 
     # TODO: Remember to also stop the inwards spinner thread
 
+
     wait(1000)  # Wait for 1 second
     ev3.speaker.play_file(winning_sound)  # Play the winning sound
     ev3.screen.load_image(winning_image)  # Display the winning image
@@ -247,12 +253,6 @@ def process_instruction(
         if distance_to_wall <= stop_distance or distance_to_wall > 2000:
             wait(500)  # Wait for 1 second
             robot.straight(reverse_distance)
-
-        # If the distance to the wall is somewhat the same at the distance to the ball, move half the distance
-        elif abs(distance_to_wall - (distance * 10)) <= 50:
-            print("Wall and ball are within similar range. Moving half of the distance")
-            move(robot=robot, distance=distance / 2)
-            wait(500)  # Wait for 0.5 seconds
 
         # If the distance to the wall is less than or equal to 100 cm, move a different distance
         elif distance_to_wall <= 300:
