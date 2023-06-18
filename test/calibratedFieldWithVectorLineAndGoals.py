@@ -204,7 +204,7 @@ while True:
     # here are the rectangle before the goals
 
     rect_width = 350
-    rect_height = 120
+    rect_height = 200
 
     # Calculate the coordinates for the left-side goal rectangle
     left_rect_x = goal_point_left[0] - rect_width // 2

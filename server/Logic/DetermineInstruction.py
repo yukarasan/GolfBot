@@ -76,7 +76,7 @@ def determine_goal_instruction(angle1, angle2, distance_to_goal, distance_to_goa
     #Else Turn and drive towards the goal
     else:
         print("går efter MÅLET")
-        return (determine_turn_direction(angle1, angle2, distance_to_goal), calculate_shortest_angle(angle2, angle1), distance_to_goal - 6)
+        return (determine_turn_direction(angle1, angle2, distance_to_goal), calculate_shortest_angle(angle2, angle1), distance_to_goal - 3)
 
 
     #Hvornår robotten skal skyde
