@@ -116,7 +116,7 @@ def main():
         reverse_distance = -100  # Distance to move backwards (10 cm)
 
         # If an object is detected within the stop distance, stop and move backwards
-        if distance <= stop_distance or distance > 2000:
+        if distance <= stop_distance or distance > 2000 and going_to_goal == 0:
             wait(500)  # Wait for 1 second
             robot.straight(reverse_distance)
         else:
@@ -215,7 +215,7 @@ def process_instruction(
         angle = float(instruction["angle"])
         distance = float(instruction["distance"])
 
-        if distance_to_wall <= stop_distance or distance_to_wall > 2000:
+        if distance_to_wall <= stop_distance or distance_to_wall > 2000 and going_to_goal == 0:
             wait(500)  # Wait for 1 second
             robot.straight(reverse_distance)
         else:
@@ -230,7 +230,7 @@ def process_instruction(
         angle = float(instruction["angle"])
         distance = float(instruction["distance"])
 
-        if distance_to_wall <= stop_distance or distance_to_wall > 2000:
+        if distance_to_wall <= stop_distance or distance_to_wall > 2000 and going_to_goal == 0:
             wait(500)  # Wait for 1 second
             robot.straight(reverse_distance)
         else:
@@ -250,12 +250,12 @@ def process_instruction(
         print("Distance to ball:", distance)
 
         # If the distance to the wall is less than the stop distance or more than 2000, move in reverse
-        if distance_to_wall <= stop_distance or distance_to_wall > 2000:
+        if distance_to_wall <= stop_distance or distance_to_wall > 2000 and going_to_goal == 0:
             wait(500)  # Wait for 1 second
             robot.straight(reverse_distance)
 
         # If the distance to the wall is less than or equal to 100 cm, move a different distance
-        elif distance_to_wall <= 300:
+        elif distance_to_wall <= 300 and going_to_goal == 0:
             print("Moving half of distance to the wall")
             move(robot=robot, distance=distance - 1)  # Move 2 cm less than the distance
             wait(500)
@@ -263,7 +263,7 @@ def process_instruction(
         # If none of the above conditions are met, perform these steps
         else:
             # If the distance is under 15 and absolute angle is over 80, move backwards instead
-            if distance < 0 and abs(angle) > 80:
+            if distance < 0 and abs(angle) > 80 and going_to_goal == 0:
                 move(robot=robot, distance=reverse_distance)
                 wait(500)  # Wait for 0.5 seconds
 
