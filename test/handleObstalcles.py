@@ -148,12 +148,11 @@ def detect_obstacle(image):
         # Approximate the contour as a polygon
         epsilon = 0.02 * cv2.arcLength(contour, True)
         approx = cv2.approxPolyDP(contour, epsilon, True)
-
         # Check if the contour is approximately a plus-sign shape
-        if len(approx) == 12:
-            obstacle_contours.append(contour)
-            draw_rect_and_center(image_with_contours, contour)
 
+    if len(approx) == 12:
+        obstacle_contours.append(contour)
+        draw_rect_and_center(image_with_contours, contour)
     return obstacle_contours, image_with_contours
 
 
