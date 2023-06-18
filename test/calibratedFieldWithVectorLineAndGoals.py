@@ -44,16 +44,16 @@ def determineNextMove():
                 "go to goal": "yes"
                 }
     else:
-        #ball_instruction = ball_instruction(angle_of_robot=angle_of_robot,
-         #                                     angle_of_ball=angle_to_ball,
-          #                                    distance_to_ball= ball_distance,
-           #                                   angle_of_ball_point=angle_of_ball_point,
-            #                                  distance_to_ball_point=distance_to_ball_point,
-             #                                 ball_point_coordinates= ball_point
-              #                                )
-        data = {"instruction": determine_turn_direction(angle_to_ball, angle_of_robot, ball_distance),
-                "angle": "{:.2f}".format(calculate_shortest_angle(angle_of_robot, angle_to_ball)),
-                "distance": "{:.2f}".format(ball_distance - 4),
+        ball_instructions = ball_instruction(angle_of_robot=angle_of_robot,
+                                              angle_of_ball=angle_to_ball,
+                                              distance_to_ball= ball_distance,
+                                              angle_of_ball_point=angle_of_ball_point,
+                                              distance_to_ball_point=distance_to_ball_point,
+                                              ball_point_coordinates= ball_point
+                                              )
+        data = {"instruction": ball_instructions[0],
+                "angle": "{:.2f}".format(ball_instructions[1]),
+                "distance": "{:.2f}".format(ball_instructions[2]),
                 "go to goal": "no"
                 }
 
@@ -203,14 +203,14 @@ while True:
     ####
     # here are the rectangle before the goals
 
-    rect_width = 350
+    rect_width = 400
     rect_height = 200
 
     # Calculate the coordinates for the left-side goal rectangle
     left_rect_x = goal_point_left[0] - rect_width // 2
     left_rect_y = goal_point_left[1] - rect_height // 2
-    left_rect_top_left = (left_rect_x - 50, left_rect_y)
-    left_rect_bottom_right = (left_rect_x + rect_width - 50, left_rect_y + rect_height)
+    left_rect_top_left = (left_rect_x - 130, left_rect_y)
+    left_rect_bottom_right = (left_rect_x + rect_width - 130, left_rect_y + rect_height)
 
     # Draw the left-side goal rectangle
     cv2.rectangle(frame, left_rect_top_left, left_rect_bottom_right, (0, 0, 0), 2)
@@ -218,8 +218,8 @@ while True:
     # Calculate the coordinates for the right-side goal rectangle
     right_rect_x = goal_point_right[0] - rect_width // 2
     right_rect_y = goal_point_right[1] - rect_height // 2
-    right_rect_top_left = (right_rect_x + 50, right_rect_y)
-    right_rect_bottom_right = (right_rect_x + rect_width + 50, right_rect_y + rect_height)
+    right_rect_top_left = (right_rect_x + 130, right_rect_y)
+    right_rect_bottom_right = (right_rect_x + rect_width + 130, right_rect_y + rect_height)
 
     # Draw the right-side goal rectangle
     cv2.rectangle(frame, right_rect_top_left, right_rect_bottom_right, (0, 0, 0), 2)
@@ -339,8 +339,11 @@ while True:
 
         circles = cv2.HoughCircles(image_blur, cv2.HOUGH_GRADIENT, dp=1, minDist=30, param1=55, param2=25, minRadius=13, maxRadius=18)
 
-        cv2.line(frame, (0, 200), (frame.shape[1], 200), (255, 0, 0), 3)  # Line at y = 100
-        cv2.line(frame, (0, 870), (frame.shape[1], 870), (255, 0, 0), 3)  # Line at y = 300
+        on_y_axis_1 = 270
+        on_y_axis_2 = 740
+
+        cv2.line(frame, (0, on_y_axis_1), (frame.shape[1], on_y_axis_1), (255, 0, 0), 3)  # Line at y = 100
+        cv2.line(frame, (0, on_y_axis_2), (frame.shape[1], on_y_axis_2), (255, 0, 0), 3)  # Line at y = 300
 
         num_balls = 0
         if circles is not None:
@@ -362,13 +365,13 @@ while True:
 
             # Check if the ball is within the desired y-coordinate range
             if closest_ball_center is not None:
-                if closest_ball_center[1] <= 200 or closest_ball_center[1] >= 870:
+                if closest_ball_center[1] <= on_y_axis_1 or closest_ball_center[1] >= on_y_axis_2:
 
                 # Find the closest line on the y-axis
-                    if abs(closest_ball_center[1] - 200) < abs(closest_ball_center[1] - 870):
-                        closest_line = (closest_ball_center[0], 200)
+                    if abs(closest_ball_center[1] - on_y_axis_1) < abs(closest_ball_center[1] - on_y_axis_2):
+                        closest_line = (closest_ball_center[0], on_y_axis_1)
                     else:
-                        closest_line = (closest_ball_center[0], 870)
+                        closest_line = (closest_ball_center[0], on_y_axis_2)
 
                         # Calculate the slope of the line perpendicular to the y-axis
                     if closest_ball_center[0] != closest_line[0]:

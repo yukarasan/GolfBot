@@ -30,15 +30,24 @@ def ball_instruction(angle_of_robot, angle_of_ball, distance_to_ball, angle_of_b
 
     #If the ball is not on the lower or upper, therefore not close to the walls
     if ball_point_coordinates == (0,0):
-        return determine_turn_direction(angle_of_ball, angle_of_robot, distance_to_ball)
+        return (determine_turn_direction(angle_of_ball, angle_of_robot, distance_to_ball),
+                calculate_shortest_angle(angle_of_robot, angle_of_ball),
+                distance_to_ball
+                )
 
     #If the ball is close to the walls
     else:
         #When to go after the ball point closer to the middle
         if(distance_to_ball_point >= 15):
-            return determine_turn_direction(angle_of_ball_point, angle_of_robot, distance_to_ball_point)
+            return (determine_turn_direction(angle_of_ball_point, angle_of_robot, distance_to_ball_point),
+                    calculate_shortest_angle(angle_of_robot, angle_of_ball_point),
+                    distance_to_ball_point
+                    )
         else: #Go to the ball
-            return determine_turn_direction(angle_of_ball, angle_of_robot, distance_to_ball)
+            return (determine_turn_direction(angle_of_ball, angle_of_robot, distance_to_ball),
+                    calculate_shortest_angle(angle_of_robot, angle_of_ball),
+                    distance_to_ball
+                    )
 
 
 
