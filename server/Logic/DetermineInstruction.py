@@ -26,6 +26,23 @@ def calculate_shortest_angle(angle1, angle2):
 
     return diff
 
+def ball_instruction(angle_of_robot, angle_of_ball, distance_to_ball, angle_of_ball_point, distance_to_ball_point, ball_point_coordinates):
+
+    #If the ball is not on the lower or upper, therefore not close to the walls
+    if ball_point_coordinates == (0,0):
+        return determine_turn_direction(angle_of_ball, angle_of_robot, distance_to_ball)
+
+    #If the ball is close to the walls
+    else:
+        #When to go after the ball point closer to the middle
+        if(distance_to_ball_point >= 15):
+            return determine_turn_direction(angle_of_ball_point, angle_of_robot, distance_to_ball_point)
+        else: #Go to the ball
+            return determine_turn_direction(angle_of_ball, angle_of_robot, distance_to_ball)
+
+
+
+
 def determine_turn_direction(angle1, angle2, distance):
     shortest_angle = calculate_shortest_angle(angle1, angle2)
 
@@ -41,19 +58,35 @@ def determine_turn_direction(angle1, angle2, distance):
         return Instructions.MOVE_LEFT.value
 
 #
-def determine_goal_instruction(angle1, angle2, distance_to_goal, distance_to_goal_point, angle_to_goal_point):
+def determine_goal_instruction(angle1, angle2, distance_to_goal, distance_to_goal_point, angle_to_goal_point, robot_in_squares):
 
-    #angle mellem bold og robot
+    #angle mellem mål og robot
     shortest_angle = calculate_shortest_angle(angle1, angle2)
 
-    #Hvornår robotten skal skyde
+    ##Hvornår robotten skal skyde
     if (distance_to_goal <= 16 and abs(shortest_angle) <= 12) or (distance_to_goal <= 14 and abs(shortest_angle) <= 23):
-        return (Instructions.SHOOT.value, 4.00, 0.00)
+       return (Instructions.SHOOT.value, 4.00, 0.00)
+
+    #If the robot is not in the squares, go towards its middle
+    elif robot_in_squares is not True:
+        print("går efter punkt foran målet")
+        return (determine_turn_direction(angle_to_goal_point, angle2, distance_to_goal_point),
+                calculate_shortest_angle(angle2, angle_to_goal_point), distance_to_goal_point)
+
+    #Else Turn and drive towards the goal
+    else:
+        print("går efter MÅLET")
+        return (determine_turn_direction(angle1, angle2, distance_to_goal), calculate_shortest_angle(angle2, angle1), distance_to_goal - 3)
+
+
+    #Hvornår robotten skal skyde
+    #if (distance_to_goal <= 16 and abs(shortest_angle) <= 12) or (distance_to_goal <= 14 and abs(shortest_angle) <= 23):
+     #   return (Instructions.SHOOT.value, 4.00, 0.00)
 
     #Deciding when to go to the goal point
-    elif distance_to_goal_point >= 15 and abs(shortest_angle) >= 63:
-        return (determine_turn_direction(angle_to_goal_point, angle2, distance_to_goal_point), calculate_shortest_angle(angle2, angle_to_goal_point), distance_to_goal_point)
+    #elif distance_to_goal_point >= 15 and abs(shortest_angle) >= 25:
+     #   return (determine_turn_direction(angle_to_goal_point, angle2, distance_to_goal_point), calculate_shortest_angle(angle2, angle_to_goal_point), distance_to_goal_point)
 
     #Turn and drive towards the goal
-    else:
-        return (determine_turn_direction(angle1, angle2, distance_to_goal), calculate_shortest_angle(angle2, angle1), distance_to_goal - 6)
+    #else:
+      #  return (determine_turn_direction(angle1, angle2, distance_to_goal), calculate_shortest_angle(angle2, angle1), distance_to_goal - 6)
