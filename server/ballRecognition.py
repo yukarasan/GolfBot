@@ -9,46 +9,34 @@ while True:
     if not ret:
         break
 
-    # Convert BGR to HSV
-    hsv = cv.cvtColor(frame, cv.COLOR_BGR2HSV)
+    # Convert BGR to grayscale
+    gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
 
-    # Define range of white color in HSV
-    lower_white = np.array([0, 0, 200])
-    upper_white = np.array([180, 30, 255])
+    # Apply a blur to reduce noise
+    image_blur = cv.GaussianBlur(gray, (5, 5), 0)
 
-    # Threshold the HSV image to get only white colors
-    mask_white = cv.inRange(hsv, lower_white, upper_white)
+    circles = cv.HoughCircles(image_blur, cv.HOUGH_GRADIENT, dp=1, minDist=30, param1=50, param2=20, minRadius=15,
+                               maxRadius=18)
 
-    # Define range of orange color in HSV
-    lower_orange = np.array([20, 100, 100])
-    upper_orange = np.array([30, 255, 255])
+    if circles is not None:
+        # Convert the coordinates and radius of the circles to integers
+        circles = np.round(circles[0, :]).astype(int)
 
-    # Threshold the HSV image to get only orange colors
-    mask_orange = cv.inRange(hsv, lower_orange, upper_orange)
+        # Filter for white colors and exclude dark colors
+        hsv = cv.cvtColor(frame, cv.COLOR_BGR2HSV)
+        lower_white = np.array([0, 0, 100])  # Define lower threshold for white color
+        upper_white = np.array([179, 255, 255])  # Define upper threshold for white color
+        mask = cv.inRange(hsv, lower_white, upper_white)
 
-    # Combine the masks
-    mask = cv.bitwise_or(mask_white, mask_orange)
+        # Apply the mask to the circles and keep only the white circles
+        filtered_circles = []
+        for (x, y, r) in circles:
+            if mask[y, x] == 255:  # Check if the pixel is white
+                filtered_circles.append((x, y, r))
 
-    # Apply some morphological operations to the mask to remove noise
-    kernel = np.ones((5, 5), np.uint8)
-    mask = cv.erode(mask, kernel, iterations=1)
-    mask = cv.dilate(mask, kernel, iterations=1)
-
-    cv.imshow('last mask', mask)
-
-    # Find contours in the mask and loop over them
-    contours, _ = cv.findContours(mask, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
-    for cnt in contours:
-        # Fit a circle to the contour if it has enough points
-        if cnt.shape[0] > 5:
-            (x, y), radius = cv.minEnclosingCircle(cnt)
-            center = (int(x), int(y))
-            radius = int(radius)
-
-            # Draw the circle if it's big enough and track it
-            if radius > 8 and radius < 20:
-                cv.circle(frame, center, radius, (0, 255, 0), 2)
-                prevCircle = center + (radius,)
+        # Draw the filtered circles
+        for (x, y, r) in filtered_circles:
+            cv.circle(frame, (x, y), r, (0, 255, 0), 2)
 
     cv.imshow('circles', frame)
 
