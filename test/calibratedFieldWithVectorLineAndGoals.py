@@ -72,7 +72,7 @@ distance_to_ball_point = 0
 angle_of_ball_point = 0
 
 robot_in_squares = False
-
+pink_center = None
 pink_center_back = None
 
 num_balls = None
@@ -345,6 +345,13 @@ while True:
         cv2.line(frame, (0, on_y_axis_1), (frame.shape[1], on_y_axis_1), (255, 0, 0), 3)  # Line at y = 100
         cv2.line(frame, (0, on_y_axis_2), (frame.shape[1], on_y_axis_2), (255, 0, 0), 3)  # Line at y = 300
 
+
+        on_x_axis_1 = 500
+        on_x_axis_2 = 1400
+
+        cv2.line(frame, (on_x_axis_1, 0), (on_x_axis_1, frame.shape[0]), (255, 0, 0), 3)  # Line at y = 100
+        cv2.line(frame, (on_x_axis_2, 0), (on_x_axis_2, frame.shape[0]), (255, 0, 0), 3)  # Line at y = 300
+
         num_balls = 0
         if circles is not None:
             # Convert the coordinates and radius of the circles to integers
@@ -365,7 +372,48 @@ while True:
 
             # Check if the ball is within the desired y-coordinate range
             if closest_ball_center is not None:
-                if closest_ball_center[1] <= on_y_axis_1 or closest_ball_center[1] >= on_y_axis_2:
+
+                #Here im checking for if the ball is in a corner
+                if ((closest_ball_center[0] <= on_x_axis_1 or closest_ball_center[0] >= on_x_axis_2) and
+                    (closest_ball_center[1] <= on_y_axis_1 or closest_ball_center[1] >= on_y_axis_2)):
+                    print("in corner")
+
+                elif closest_ball_center[0] <= on_x_axis_1 or closest_ball_center[0] >= on_x_axis_2:
+
+                    if abs(closest_ball_center[0] - on_x_axis_1) < abs(closest_ball_center[0] - on_x_axis_2):
+                        closest_line = (on_x_axis_1, closest_ball_center[1])
+                    else:
+                        closest_line = (on_x_axis_2, closest_ball_center[1])
+
+                ###########
+
+                    # Calculate the slope of the line perpendicular to the y-axis
+                    if closest_ball_center is not None:
+                        if closest_ball_center[0] != closest_line[0]:
+                            slope = -1 / ((closest_line[1] - 2))
+                        else:
+                            slope = float('inf')
+
+                        # Calculate the intercept of the perpendicular line
+                        intercept = closest_ball_center[1] - slope * closest_ball_center[0]
+
+                        # Find the intersection point between the perpendicular line and the closest line
+                        if slope != float('inf'):
+                            intersect_x = (closest_line[1] - intercept) / slope
+                            intersect_y = closest_line[1]
+                        else:
+                            intersect_x = closest_ball_center[0]
+                            intersect_y = closest_line[1]
+
+                        # Draw a line from the ball to the closest line across the y-axis (perpendicular line)
+                        cv2.line(frame, closest_ball_center, (int(intersect_x), int(intersect_y)), (0, 0, 255), 2)
+                        ball_point = (int(intersect_x), int(intersect_y))
+
+
+                ###########
+
+                #If on the upper or lower margins
+                elif closest_ball_center[1] <= on_y_axis_1 or closest_ball_center[1] >= on_y_axis_2:
 
                 # Find the closest line on the y-axis
                     if abs(closest_ball_center[1] - on_y_axis_1) < abs(closest_ball_center[1] - on_y_axis_2):
@@ -373,7 +421,7 @@ while True:
                     else:
                         closest_line = (closest_ball_center[0], on_y_axis_2)
 
-                        # Calculate the slope of the line perpendicular to the y-axis
+                    # Calculate the slope of the line perpendicular to the y-axis
                     if closest_ball_center[0] != closest_line[0]:
                         slope = -1 / ((closest_line[1] - closest_ball_center[1]) / (closest_line[0] - closest_ball_center[0]))
                     else: slope = float('inf')
@@ -396,9 +444,10 @@ while True:
                     ball_point = (int(0), int(0))
 
     back_distance = 100
-    pink_center_back = calculate_new_coordinates(pink_center, angle_of_robot, back_distance)
+    if pink_center is not None:
+        pink_center_back = calculate_new_coordinates(pink_center, angle_of_robot, back_distance)
 
-    if closest_ball_center is not None:
+    if closest_ball_center is not None and pink_center_back is not None:
         # Draw a line between centroid of green object and center of the closest white ball
         cv2.line(frame, (cX, cY), closest_ball_center, (0, 0, 255), 2)
 
@@ -413,11 +462,12 @@ while True:
         cv2.putText(frame, f"Angle to ball: {ball_angle:.2f}", (10, 50), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 0, 0), 2)
 
     #Keeping track of whether the robot is in the squares or not
-    robot_in_squares = is_point_inside_squares(pink_center, left_rect_top_left, left_rect_bottom_right, right_rect_top_left, right_rect_bottom_right)
+    if pink_center is not None:
+        robot_in_squares = is_point_inside_squares(pink_center, left_rect_top_left, left_rect_bottom_right, right_rect_top_left, right_rect_bottom_right)
     #print(robot_in_squares)
     #Distance to ball point
-    if closest_ball_center is not None:
-        distance_to_ball_point = calculate_distance(pink_center_back, ball_point) * conversion_factor
+    if closest_ball_center is not None and pink_center is not None:
+        distance_to_ball_point = calculate_distance(pink_center, ball_point) * conversion_factor
         angle_of_ball_point = calculate_angle(pink_center_back, ball_point)
 
     ########################################### FINDING DISTANCE TO GOAL ##########################################
@@ -430,11 +480,12 @@ while True:
     cv2.circle(frame, goal_point_right, radius=8, color=(0, 255, 255), thickness=-2)  # Yellow dot
 
     # Calculate distances to the goals
-    distance_to_left_goal = calculate_distance(pink_center, goal_left) * conversion_factor
-    distance_to_right_goal = calculate_distance(pink_center, goal_right) * conversion_factor
+    if pink_center is not None:
+        distance_to_left_goal = calculate_distance(pink_center, goal_left) * conversion_factor
+        distance_to_right_goal = calculate_distance(pink_center, goal_right) * conversion_factor
 
-    distance_to_left_goal_point = calculate_distance(pink_center, goal_point_left) * conversion_factor
-    distance_to_right_goal_point = calculate_distance(pink_center, goal_point_right) * conversion_factor
+        distance_to_left_goal_point = calculate_distance(pink_center, goal_point_left) * conversion_factor
+        distance_to_right_goal_point = calculate_distance(pink_center, goal_point_right) * conversion_factor
 
     goal_angle = None
     # Draw a line to the closest goal
