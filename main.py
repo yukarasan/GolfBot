@@ -29,14 +29,14 @@ class FourWheelMechanism(Thread):
 
     def run(self):
         while self.running:
-            self.four_wheel_mechanism.run(1000)  # Run the conveyor belt
+            self.four_wheel_mechanism.run(1000)  # Run the four_wheel_mechanism motor continuously
             time.sleep(0.1)  # Sleep for a short while to not hog the CPU
 
     def stop(self):
         self.running = False
 
     def stop_four_wheel_mechanism(self):
-        self.four_wheel_mechanism.stop()  # Stops the conveyor motor
+        self.four_wheel_mechanism.stop()  # Stops the four_wheel_mechanism motor
 
 
 # Thread for the spinner that spins inwards
@@ -46,32 +46,39 @@ class SpinnerThreadInwards(Thread):
         self.spinner = spinner
         self.running = True
 
+    # Make the spinner run continuously
     def run(self):
         while self.running:
-            self.spinner.run(speed=-300)  # Make the spinner run continuously
+            self.spinner.run(speed=-300)
+
+            # Stops the spinner motor
 
     def stop(self):
         self.running = False
-        self.spinner.stop()  # Stops the spinner motor
+        self.spinner.stop()
+
+    # Thread for the spinner that spins outwards
 
 
-# Thread for the spinner that spins outwards
 class SpinnerThreadOutward(Thread):
     def __init__(self, spinner):
         Thread.__init__(self)
         self.spinner = spinner
         self.running = True
 
+    # Make the spinner run continuously, but in the opposite direction
     def run(self):
         while self.running:
-            self.spinner.run(speed=300)  # Make the spinner run continuously
+            self.spinner.run(speed=300)
+
+            # Stops the spinner motor
 
     def stop(self):
         self.running = False
-        self.spinner.stop()  # Stops the spinner motor
+        self.spinner.stop()
 
 
-# This program requires LEGO EV3 MicroPython v2.0 or higher.
+# This program requires LEGO EV3 MicroPython v2.0 or higher
 def main():
     # Objects and setup
     ev3 = EV3Brick()
@@ -101,22 +108,21 @@ def main():
     spinner_thread = SpinnerThreadInwards(spinner)
     spinner_thread.start()
 
+    # Make the robot ask for instructions until it stopInstructions is True
     while stopInstructions is not True:
         # Socket connection setup
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        # 10.209.234.177 || 172.20.10.4
-        sock.connect(("192.168.1.215", 8081))
+        sock.connect(("192.168.1.215", 8081))  # 10.209.234.177 || 172.20.10.4
 
         # Get the distance to the nearest object
         distance = ultrasonic.distance()
         print("Distance to wall:", distance)
 
-        # Distance to stop at (4 cm)
-        stop_distance = 40
+        stop_distance = 40  # Distance to stop at (4 cm)
         reverse_distance = -100  # Distance to move backwards (10 cm)
 
-        # If an object is detected within the stop distance, stop and move backwards
-        if distance <= stop_distance or distance > 2000 and going_to_goal == 0:
+        # If an object is detected within the stop distance, stop and move backwards else keep asking for instructions
+        if (distance <= stop_distance or distance > 2000) and going_to_goal == 0:
             wait(500)  # Wait for 1 second
             robot.straight(reverse_distance)
         else:
@@ -136,6 +142,7 @@ def main():
                 if '200 OK' in header:
                     json_data = json.loads(body)
                     print(json_data)
+                    # Process instruction based on JSON data
                     process_instruction(
                         robot=robot,
                         instruction=json_data,
@@ -162,13 +169,13 @@ def main():
 
     # TODO: Remember to also stop the inwards spinner thread
 
-
     wait(1000)  # Wait for 1 second
     ev3.speaker.play_file(winning_sound)  # Play the winning sound
     ev3.screen.load_image(winning_image)  # Display the winning image
-    wait(10000)  # Wait for 10 seconds
+    wait(5000)  # Wait for 10 seconds
 
 
+# Function to process the instruction from the server and move the robot accordingly
 def process_instruction(
         robot: DriveBase,
         instruction,
@@ -178,9 +185,10 @@ def process_instruction(
         spinner_thread: SpinnerThreadInwards,
         distance_to_wall: int
 ):
-    # Distance to stop at (4 cm)
-    stop_distance = 40
+    stop_distance = 40  # Distance to stop at (4 cm)
     reverse_distance = -100  # Distance to move backwards (10 cm)
+
+    print("Distance to wall:", distance_to_wall)
 
     # if instruction "go to goal" is "yes" then stop the spinner
     if instruction["go to goal"] == "yes":
@@ -193,34 +201,35 @@ def process_instruction(
         going_to_goal = 0
 
     if instruction["instruction"] in ["Left", "Right"]:
-
         global direction_counter
         direction_counter += 1
 
+        # Printing the amount of times the robot has turned left or right
         print("Direction counter:", direction_counter)
 
+        # If the robot has turned left or right 20 times, make the robot move backwards if and only
+        # if it is not going to the goal and is not hitting the wall
         if direction_counter >= 20:
             direction_counter = 0
 
-            if distance_to_wall <= stop_distance or distance_to_wall > 2000:
-                wait(500)  # Wait for 1 second
+            if (distance_to_wall <= stop_distance or distance_to_wall > 2000) and going_to_goal == 0:
+                wait(500)  # Wait for 500 ms
                 robot.straight(reverse_distance)
             else:
-                move(robot=robot, distance=-10)  # move backwards
+                move(robot=robot, distance=-10)  # move backwards 10 cm
     else:
         direction_counter = 0  # Reset the counter if the instruction is not "Left" or "Right"
 
     if instruction["instruction"] == "Left":
-
         angle = float(instruction["angle"])
         distance = float(instruction["distance"])
 
-        if distance_to_wall <= stop_distance or distance_to_wall > 2000 and going_to_goal == 0:
-            wait(500)  # Wait for 1 second
+        if (distance_to_wall <= stop_distance or distance_to_wall > 2000) and going_to_goal == 0:
+            wait(500)
             robot.straight(reverse_distance)
         else:
-            # If the distance is under 15, move backwards instead
-            if distance < 0 and abs(angle) > 80:
+            if distance < 0 and abs(angle) > 80 and going_to_goal == 0:
+                print("Delete me maybe? 1")
                 move(robot=robot, distance=reverse_distance)
 
             # Turn the robot left
@@ -230,13 +239,12 @@ def process_instruction(
         angle = float(instruction["angle"])
         distance = float(instruction["distance"])
 
-        if distance_to_wall <= stop_distance or distance_to_wall > 2000 and going_to_goal == 0:
-            wait(500)  # Wait for 1 second
+        if (distance_to_wall <= stop_distance or distance_to_wall > 2000) and going_to_goal == 0:
+            wait(500)
             robot.straight(reverse_distance)
         else:
-
-            # If the distance is under 15, move backwards instead
-            if distance < 0 and abs(angle) > 80:
+            if distance < 0 and abs(angle) > 80 and going_to_goal == 0:
+                print("Delete me maybe? 2")
                 move(robot=robot, distance=reverse_distance)
 
             # Turn the robot right
@@ -246,24 +254,13 @@ def process_instruction(
         distance = float(instruction["distance"])
         angle = float(instruction["angle"])
 
-        print("Distance to wall:", distance_to_wall)
-        print("Distance to ball:", distance)
-
         # If the distance to the wall is less than the stop distance or more than 2000, move in reverse
-        if distance_to_wall <= stop_distance or distance_to_wall > 2000 and going_to_goal == 0:
+        if (distance_to_wall <= stop_distance or distance_to_wall > 2000) and going_to_goal == 0:
             wait(500)  # Wait for 1 second
             robot.straight(reverse_distance)
-
-        # If the distance to the wall is less than or equal to 100 cm, move a different distance
-        elif distance_to_wall <= 300 and going_to_goal == 0:
-            print("Moving half of distance to the wall")
-            move(robot=robot, distance=distance - 1)  # Move 2 cm less than the distance
-            wait(500)
-
-        # If none of the above conditions are met, perform these steps
         else:
-            # If the distance is under 15 and absolute angle is over 80, move backwards instead
             if distance < 0 and abs(angle) > 80 and going_to_goal == 0:
+                print("Delete me maybe? 3")
                 move(robot=robot, distance=reverse_distance)
                 wait(500)  # Wait for 0.5 seconds
 
@@ -280,48 +277,36 @@ def process_instruction(
         # Start the outward spinner thread
         spinner_thread = SpinnerThreadOutward(spinner=spinner)
         spinner_thread.start()
-        
+
         # Release the four_wheel_mechanism
-        release_four_wheel_mechanism(four_wheel_mechanism=four_wheel_mechanism) 
+        release_four_wheel_mechanism(four_wheel_mechanism=four_wheel_mechanism)
 
         global stopInstructions
         stopInstructions = True
 
 
+# A function to turn the robot left or right depending on the angle
 def turn(robot: DriveBase, angle):
-    # Code to turn the robot left
-    print("Turning:", angle)
-    # Adjust the motor rotation and speed according to your robot's setup
     robot.turn(angle=angle)
 
 
+# A function to move the robot forward or backward depending on the distance
 def move(robot: DriveBase, distance):
-    # Code to move the robot forward
-    print("Moving forward:", distance)
-    # Adjust the motor rotation and speed according to your robot's setup
-    robot.straight(distance=distance * 10)  # Convert to millimeters
+    robot.straight(distance=distance * 10)  # Converting to millimeters
 
 
+# A function to stop the robot
 def stop(robot: DriveBase):
     robot.stop()
 
 
-def check_for_red(sensor: ColorSensor, robot: DriveBase):
-    if sensor.color() == Color.RED:
-        stop(robot=robot)
-
-
-# Run conveyor function to be started on a separate thread
-def run_conveyor(conveyor: Motor):
-    print("Running conveyor")
-    conveyor.run_time(speed=1000, time=10000 * 48)  # Run the conveyor belt for 10 seconds * 48 = 480 seconds
-
-
+# A function that releases the four wheel mechanism to shoot the balls in the goal
 def release_four_wheel_mechanism(four_wheel_mechanism: Motor):
     print("Releasing balls")
     four_wheel_mechanism.run_time(speed=-1000, time=10000)  # Run the four wheel mechanism for 10 seconds
 
 
+# Play winning sound when the robot finishes the course
 def play_winning_sound(ev3: EV3Brick, soundfile):
     try:
         ev3.speaker.set_volume(100)
@@ -330,6 +315,7 @@ def play_winning_sound(ev3: EV3Brick, soundfile):
         print("Failed to play sound.")
 
 
+# Display winning image on the EV3 screen when the robot finishes the course
 def display_winning_image(ev3: EV3Brick, imagefile):
     try:
         ev3.screen.load_image(imagefile)
