@@ -104,9 +104,10 @@ def main():
     four_wheel_mechanism_thread = FourWheelMechanism(four_wheel_mechanism)
     four_wheel_mechanism_thread.start()
 
-    # Start the spinner thread
+    # Start the spinner threads
     spinner_thread = SpinnerThreadInwards(spinner)
     spinner_thread.start()
+    outwards_spinner_thread = SpinnerThreadOutward(spinner)
 
     # Make the robot ask for instructions until it stopInstructions is True
     while stopInstructions is not True:
@@ -123,7 +124,7 @@ def main():
 
         # If an object is detected within the stop distance, stop and move backwards else keep asking for instructions
         if (distance <= stop_distance or distance > 2000) and going_to_goal == 0:
-            wait(500)  # Wait for 1 second
+            wait(500)  # Wait for 500 milliseconds
             robot.straight(reverse_distance)
         else:
             try:
@@ -146,10 +147,10 @@ def main():
                     process_instruction(
                         robot=robot,
                         instruction=json_data,
-                        spinner=spinner,
                         four_wheel_mechanism=four_wheel_mechanism,
                         four_wheel_mechanism_thread=four_wheel_mechanism_thread,
                         spinner_thread=spinner_thread,
+                        outwards_spinner_thread=outwards_spinner_thread,
                         distance_to_wall=distance
                     )
                 else:
@@ -161,28 +162,25 @@ def main():
             finally:
                 sock.close()
 
-    if spinner_thread.running:
-        spinner_thread.stop()
+    if outwards_spinner_thread.running:
+        outwards_spinner_thread.stop()
 
     # Stop the four_wheel_mechanism belt thread
     four_wheel_mechanism.stop()
 
-    # TODO: Remember to also stop the inwards spinner thread
-
-    wait(1000)  # Wait for 1 second
     ev3.speaker.play_file(winning_sound)  # Play the winning sound
     ev3.screen.load_image(winning_image)  # Display the winning image
-    wait(5000)  # Wait for 10 seconds
+    wait(5000)  # Wait for 5 seconds
 
 
 # Function to process the instruction from the server and move the robot accordingly
 def process_instruction(
         robot: DriveBase,
         instruction,
-        spinner: Motor,
         four_wheel_mechanism: Motor,
         four_wheel_mechanism_thread: FourWheelMechanism,
         spinner_thread: SpinnerThreadInwards,
+        outwards_spinner_thread: SpinnerThreadOutward,
         distance_to_wall: int
 ):
     stop_distance = 40  # Distance to stop at (4 cm)
@@ -213,7 +211,7 @@ def process_instruction(
             direction_counter = 0
 
             if (distance_to_wall <= stop_distance or distance_to_wall > 2000) and going_to_goal == 0:
-                wait(500)  # Wait for 500 ms
+                wait(500)
                 robot.straight(reverse_distance)
             else:
                 move(robot=robot, distance=-10)  # move backwards 10 cm
@@ -256,27 +254,29 @@ def process_instruction(
 
         # If the distance to the wall is less than the stop distance or more than 2000, move in reverse
         if (distance_to_wall <= stop_distance or distance_to_wall > 2000) and going_to_goal == 0:
-            wait(500)  # Wait for 1 second
+            wait(500)
             robot.straight(reverse_distance)
         else:
             if distance < 0 and abs(angle) > 80 and going_to_goal == 0:
                 print("Delete me maybe? 3")
                 move(robot=robot, distance=reverse_distance)
-                wait(500)  # Wait for 0.5 seconds
+                wait(500)
 
             # If the distance to the ball is over 35, move half the distance
             elif distance > 35:
                 move(robot=robot, distance=distance / 2)
-                wait(500)  # Wait for 0.5 seconds
+                wait(500)
             else:
                 move(robot=robot, distance=distance)
-                wait(500)  # Wait for 0.5 seconds
+                wait(500)
 
     elif instruction["instruction"] == "Shoot":
         four_wheel_mechanism_thread.stop()  # Stop the four_wheel_mechanism thread
+
+        # Stop the inwards spinner thread
+        spinner_thread.stop()
         # Start the outward spinner thread
-        spinner_thread = SpinnerThreadOutward(spinner=spinner)
-        spinner_thread.start()
+        outwards_spinner_thread.start()
 
         # Release the four_wheel_mechanism
         release_four_wheel_mechanism(four_wheel_mechanism=four_wheel_mechanism)
