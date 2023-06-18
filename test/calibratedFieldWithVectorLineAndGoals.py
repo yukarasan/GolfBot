@@ -345,7 +345,6 @@ while True:
         cv2.line(frame, (0, on_y_axis_1), (frame.shape[1], on_y_axis_1), (255, 0, 0), 3)  # Line at y = 100
         cv2.line(frame, (0, on_y_axis_2), (frame.shape[1], on_y_axis_2), (255, 0, 0), 3)  # Line at y = 300
 
-
         on_x_axis_1 = 500
         on_x_axis_2 = 1400
 
@@ -370,47 +369,76 @@ while True:
                         min_distance = pixel_distance
                         closest_ball_center = center
 
-            # Check if the ball is within the desired y-coordinate range
             if closest_ball_center is not None:
-
                 #Here im checking for if the ball is in a corner
                 if ((closest_ball_center[0] <= on_x_axis_1 or closest_ball_center[0] >= on_x_axis_2) and
                     (closest_ball_center[1] <= on_y_axis_1 or closest_ball_center[1] >= on_y_axis_2)):
-                    print("in corner")
+
+                    #Top or bottom on left side?
+                    if closest_ball_center[0] <= on_x_axis_1:
+                        if closest_ball_center[1] <= on_y_axis_1:
+                            # Ball is in the top-left corner
+                            closest_line = (on_x_axis_1, on_y_axis_1)
+                        elif closest_ball_center[1] > on_y_axis_1:
+                            # Ball is in the bottom-left corner
+                            closest_line = (on_x_axis_1, on_y_axis_2)
+                    else: #Top or bottom on right side?
+                        if closest_ball_center[1] <= on_y_axis_1:
+                            # Ball is in the top-right corner
+                            closest_line = (on_x_axis_2, on_y_axis_1)
+                        elif closest_ball_center[1] > on_y_axis_1:
+                            # Ball is in the bottom-right corner
+                            closest_line = (on_x_axis_2, on_y_axis_2)
+
+                    cv2.line(frame, closest_ball_center, closest_line, (0, 0, 255), 2)
+
+
 
                 elif closest_ball_center[0] <= on_x_axis_1 or closest_ball_center[0] >= on_x_axis_2:
 
                     if abs(closest_ball_center[0] - on_x_axis_1) < abs(closest_ball_center[0] - on_x_axis_2):
+
                         closest_line = (on_x_axis_1, closest_ball_center[1])
+
                     else:
+
                         closest_line = (on_x_axis_2, closest_ball_center[1])
 
-                ###########
+                    # Calculate the slope of the line perpendicular to the x-axis
 
-                    # Calculate the slope of the line perpendicular to the y-axis
-                    if closest_ball_center is not None:
-                        if closest_ball_center[0] != closest_line[0]:
-                            slope = -1 / ((closest_line[1] - 2))
-                        else:
-                            slope = float('inf')
+                    if closest_ball_center[1] != closest_line[1]:
 
-                        # Calculate the intercept of the perpendicular line
-                        intercept = closest_ball_center[1] - slope * closest_ball_center[0]
+                        slope = -1 / ((closest_line[0] - closest_ball_center[0]) / (
+                                    closest_line[1] - closest_ball_center[1]))
 
-                        # Find the intersection point between the perpendicular line and the closest line
-                        if slope != float('inf'):
-                            intersect_x = (closest_line[1] - intercept) / slope
-                            intersect_y = closest_line[1]
-                        else:
-                            intersect_x = closest_ball_center[0]
-                            intersect_y = closest_line[1]
+                    else:
 
-                        # Draw a line from the ball to the closest line across the y-axis (perpendicular line)
-                        cv2.line(frame, closest_ball_center, (int(intersect_x), int(intersect_y)), (0, 0, 255), 2)
-                        ball_point = (int(intersect_x), int(intersect_y))
+                        slope = 0
 
+                    # Calculate the intercept of the perpendicular line
 
-                ###########
+                    intercept = closest_ball_center[1] - slope * closest_ball_center[0]
+
+                    # Find the intersection point between the perpendicular line and the closest line
+
+                    if slope != 0:
+
+                        intersect_x = closest_ball_center[0]
+
+                        intersect_y = slope * intersect_x + intercept
+
+                    else:
+
+                        intersect_x = closest_line[0]
+
+                        intersect_y = closest_ball_center[1]
+
+                    # Draw a line from the ball to the closest line on the x-axis (perpendicular line)
+
+                    cv2.line(frame, closest_ball_center, (int(intersect_x), int(intersect_y)), (0, 0, 255), 2)
+
+                    ball_point = (int(intersect_x), int(intersect_y))
+
 
                 #If on the upper or lower margins
                 elif closest_ball_center[1] <= on_y_axis_1 or closest_ball_center[1] >= on_y_axis_2:
