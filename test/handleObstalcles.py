@@ -43,15 +43,17 @@ def is_obstacle(line_start, line_end):
 
 def draw_rect_and_center(image, contours):
     global top_left, top_right, bottom_right, bottom_left
-    middle_obstacle = None
+    rotated_box = None
+    center_x = None
+    center_y = None
 
     for contour in contours:
         epsilon = 0.02 * cv2.arcLength(contour, True)
         approx = cv2.approxPolyDP(contour, epsilon, True)
 
         # Check if the contour has a certain size range
-        min_contour_area = 500  # Adjust this value as needed
-        max_contour_area = 5000  # Adjust this value as needed
+        min_contour_area = 6000  # Adjust this value as needed
+        max_contour_area = 15000  # Adjust this value as needed
         contour_area = cv2.contourArea(approx)
 
         if min_contour_area < contour_area < max_contour_area:
@@ -83,10 +85,11 @@ def draw_rect_and_center(image, contours):
             bottom_right = obstacle_points[3]
 
             # Draw the rotated and scaled bounding rectangle
-            cv2.drawContours(image, [rotated_box], 0, (0, 0, 255), 2)
+    if rotated_box is not None:
+        cv2.drawContours(image, [rotated_box], 0, (0, 0, 255), 2)
 
-            # Draw a circle to represent the center of the bounding rectangle
-            cv2.circle(image, (center_x, center_y), 3, (0, 255, 0), -1)
+    # Draw a circle to represent the center of the bounding rectangle
+    cv2.circle(image, (center_x, center_y), 3, (0, 255, 0), -1)
 
 
 
