@@ -41,41 +41,34 @@ def is_obstacle(line_start, line_end):
     return False
 
 
-def draw_rect_and_center(image, contour):
-    global top_left, top_right, bottom_right, bottom_left, obstacle_center
-    global obstacle_points
+def draw_rect_and_center(image, contours):
+    for contour in contours:
+        # Find the minimum bounding rectangle that encloses the contour
+        rect = cv2.minAreaRect(contour)
+        box = cv2.boxPoints(rect)
+        box = np.int0(box)
 
-    # Find the minimum bounding rectangle that encloses the contour
-    rect = cv2.minAreaRect(contour)
-    box = cv2.boxPoints(rect)
-    box = np.int0(box)
+        # Calculate the center of the bounding rectangle
+        center_x = int(rect[0][0])
+        center_y = int(rect[0][1])
 
-    # Calculate the center of the bounding rectangle
-    center_x = int(rect[0][0])
-    center_y = int(rect[0][1])
-    obstacle_center = [center_x,center_y]
+        # Calculate the rotation angle and scale factor
+        angle = 45
+        scale_factor = 1.8
 
-    # Calculate the rotation angle and scale factor
-    angle = 45
-    scale_factor = 1.8
+        # Rotate and scale the bounding rectangle
+        rotation_matrix = cv2.getRotationMatrix2D((center_x, center_y), angle, scale_factor)
+        rotated_box = cv2.transform(np.array([box]), rotation_matrix)[0]
 
-    # Rotate and scale the bounding rectangle
-    rotation_matrix = cv2.getRotationMatrix2D((center_x, center_y), angle, scale_factor)
-    rotated_box = cv2.transform(np.array([box]), rotation_matrix)[0]
+        # Get the corner points of the rotated and scaled rectangle
+        obstacle_points = (tuple(rotated_box[2]), tuple(rotated_box[1]), tuple(rotated_box[0]), tuple(rotated_box[3]))
+        top_right, top_left, bottom_left, bottom_right = obstacle_points
 
-    # Get the corner points of the rotated and scaled rectangle
-    obstacle_points = (tuple(rotated_box[2]), tuple(rotated_box[1]), tuple(rotated_box[0]), tuple(rotated_box[3]))
-    top_right = obstacle_points[0]
-    top_left = obstacle_points[1]
-    bottom_left = obstacle_points[2]
-    bottom_right = obstacle_points[3]
+        # Draw the rotated and scaled bounding rectangle
+        cv2.drawContours(image, [rotated_box], 0, (0, 0, 255), 2)
 
-    # Draw the rotated and scaled bounding rectangle
-    cv2.drawContours(image, [rotated_box], 0, (0, 0, 255), 2)
-
-    # Draw a circle to represent the center of the bounding rectangle
-    cv2.circle(image, (center_x, center_y), 3, (0, 255, 0), -1)
-
+        # Draw a circle to represent the center of the bounding rectangle
+        cv2.circle(image, (center_x, center_y), 3, (0, 255, 0), -1)
 
 def find_quadrant(obj_coordinate, center_coordinate):
     x_new = obj_coordinate[0] - center_coordinate[0]
@@ -117,6 +110,7 @@ def is_robot_close_to_obstacle(robot_contour, square_contour):
     # Return True if the robot is touching the square contour
     return is_close
 
+
 def detect_obstacle(image):
     # Convert the image to HSV color space
     hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
@@ -148,11 +142,14 @@ def detect_obstacle(image):
         # Approximate the contour as a polygon
         epsilon = 0.02 * cv2.arcLength(contour, True)
         approx = cv2.approxPolyDP(contour, epsilon, True)
-        # Check if the contour is approximately a plus-sign shape
 
-    if len(approx) == 12:
-        obstacle_contours.append(contour)
-        draw_rect_and_center(image_with_contours, contour)
+        # Check if the contour is approximately a plus-sign shape
+        if len(approx) == 12:
+            obstacle_contours.append(approx)  # Append the approximated contour
+
+    # Draw contours on the image
+    draw_rect_and_center(image_with_contours, obstacle_contours)
+
     return obstacle_contours, image_with_contours
 
 

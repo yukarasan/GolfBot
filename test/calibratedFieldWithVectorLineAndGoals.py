@@ -419,10 +419,9 @@ while True:
                     0.7, (255, 0, 0), 2)
         cv2.putText(frame, f"distance to goal: {goal_distance:.2f}", (10, 90), cv2.FONT_HERSHEY_SIMPLEX,
                     0.7, (255, 0, 0), 2)
-        frame_with_contours = frame
-        if detect_obstacle(frame):
-            obstacle_contours, frame_with_contours = detect_obstacle(frame)
-            cv2.drawContours(frame_with_contours, obstacle_contours, -1, (0, 255, 0), 2)
+
+        obstacle_contours, frame_with_contours = detect_obstacle(frame)
+
 
     cv2.imshow('All Contours', frame_with_contours)
     cv2.imshow('orange', mask_white)
