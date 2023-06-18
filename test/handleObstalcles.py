@@ -42,33 +42,53 @@ def is_obstacle(line_start, line_end):
 
 
 def draw_rect_and_center(image, contours):
+    global top_left, top_right, bottom_right, bottom_left
+    middle_obstacle = None
+
     for contour in contours:
-        # Find the minimum bounding rectangle that encloses the contour
-        rect = cv2.minAreaRect(contour)
-        box = cv2.boxPoints(rect)
-        box = np.int0(box)
+        epsilon = 0.02 * cv2.arcLength(contour, True)
+        approx = cv2.approxPolyDP(contour, epsilon, True)
 
-        # Calculate the center of the bounding rectangle
-        center_x = int(rect[0][0])
-        center_y = int(rect[0][1])
+        # Check if the contour has a certain size range
+        min_contour_area = 500  # Adjust this value as needed
+        max_contour_area = 5000  # Adjust this value as needed
+        contour_area = cv2.contourArea(approx)
 
-        # Calculate the rotation angle and scale factor
-        angle = 45
-        scale_factor = 1.8
+        if min_contour_area < contour_area < max_contour_area:
+            middle_obstacle = approx
 
-        # Rotate and scale the bounding rectangle
-        rotation_matrix = cv2.getRotationMatrix2D((center_x, center_y), angle, scale_factor)
-        rotated_box = cv2.transform(np.array([box]), rotation_matrix)[0]
+            # Find the minimum bounding rectangle that encloses the contour
+            rect = cv2.minAreaRect(middle_obstacle)
+            box = cv2.boxPoints(rect)
+            box = np.int0(box)
 
-        # Get the corner points of the rotated and scaled rectangle
-        obstacle_points = (tuple(rotated_box[2]), tuple(rotated_box[1]), tuple(rotated_box[0]), tuple(rotated_box[3]))
-        top_right, top_left, bottom_left, bottom_right = obstacle_points
+            # Calculate the center of the bounding rectangle
+            center_x = int(rect[0][0])
+            center_y = int(rect[0][1])
 
-        # Draw the rotated and scaled bounding rectangle
-        cv2.drawContours(image, [rotated_box], 0, (0, 0, 255), 2)
+            # Calculate the rotation angle and scale factor
+            angle = 45
+            scale_factor = 1.8
 
-        # Draw a circle to represent the center of the bounding rectangle
-        cv2.circle(image, (center_x, center_y), 3, (0, 255, 0), -1)
+            # Rotate and scale the bounding rectangle
+            rotation_matrix = cv2.getRotationMatrix2D((center_x, center_y), angle, scale_factor)
+            rotated_box = cv2.transform(np.array([box]), rotation_matrix)[0]
+
+            # Get the corner points of the rotated and scaled rectangle
+            obstacle_points = (
+            tuple(rotated_box[2]), tuple(rotated_box[1]), tuple(rotated_box[0]), tuple(rotated_box[3]))
+            top_right = obstacle_points[0]
+            top_left = obstacle_points[1]
+            bottom_left = obstacle_points[2]
+            bottom_right = obstacle_points[3]
+
+            # Draw the rotated and scaled bounding rectangle
+            cv2.drawContours(image, [rotated_box], 0, (0, 0, 255), 2)
+
+            # Draw a circle to represent the center of the bounding rectangle
+            cv2.circle(image, (center_x, center_y), 3, (0, 255, 0), -1)
+
+
 
 def find_quadrant(obj_coordinate, center_coordinate):
     x_new = obj_coordinate[0] - center_coordinate[0]
