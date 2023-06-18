@@ -381,11 +381,36 @@ while True:
                 elif closest_ball_center[0] <= on_x_axis_1 or closest_ball_center[0] >= on_x_axis_2:
 
                     if abs(closest_ball_center[0] - on_x_axis_1) < abs(closest_ball_center[0] - on_x_axis_2):
-                        print("left side?")
-                        closest_line = (closest_ball_center[0], on_y_axis_1)
+                        closest_line = (on_x_axis_1, closest_ball_center[1])
                     else:
-                        closest_line = (closest_ball_center[0], on_y_axis_2)
-                        print("right side?")
+                        closest_line = (on_x_axis_2, closest_ball_center[1])
+
+                ###########
+
+                    # Calculate the slope of the line perpendicular to the y-axis
+                    if closest_ball_center is not None:
+                        if closest_ball_center[0] != closest_line[0]:
+                            slope = -1 / ((closest_line[1] - 2))
+                        else:
+                            slope = float('inf')
+
+                        # Calculate the intercept of the perpendicular line
+                        intercept = closest_ball_center[1] - slope * closest_ball_center[0]
+
+                        # Find the intersection point between the perpendicular line and the closest line
+                        if slope != float('inf'):
+                            intersect_x = (closest_line[1] - intercept) / slope
+                            intersect_y = closest_line[1]
+                        else:
+                            intersect_x = closest_ball_center[0]
+                            intersect_y = closest_line[1]
+
+                        # Draw a line from the ball to the closest line across the y-axis (perpendicular line)
+                        cv2.line(frame, closest_ball_center, (int(intersect_x), int(intersect_y)), (0, 0, 255), 2)
+                        ball_point = (int(intersect_x), int(intersect_y))
+
+
+                ###########
 
                 #If on the upper or lower margins
                 elif closest_ball_center[1] <= on_y_axis_1 or closest_ball_center[1] >= on_y_axis_2:
@@ -396,7 +421,7 @@ while True:
                     else:
                         closest_line = (closest_ball_center[0], on_y_axis_2)
 
-                        # Calculate the slope of the line perpendicular to the y-axis
+                    # Calculate the slope of the line perpendicular to the y-axis
                     if closest_ball_center[0] != closest_line[0]:
                         slope = -1 / ((closest_line[1] - closest_ball_center[1]) / (closest_line[0] - closest_ball_center[0]))
                     else: slope = float('inf')
