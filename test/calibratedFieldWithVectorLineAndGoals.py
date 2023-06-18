@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 import math
-from handleObstalcles import avoid_obstacle, is_obstacle, detect_obstacle, obstacle_center
+from handleObstalcles import avoid_obstacle, is_obstacle, detect_obstacle, get_obstacle_center
 
 from flask import Flask, jsonify
 import threading
@@ -26,7 +26,7 @@ def determineNextMove():
 
         # den rammer forhindring på vej til mål.
         if is_obstacle(pink_center, target_goal):
-            obstacle_point = avoid_obstacle(green_center, target_goal, obstacle_center)
+            obstacle_point = avoid_obstacle(green_center, target_goal, get_obstacle_center())
             angle_to_obstacle = calculate_angle(green_center, obstacle_point)
             data = {"instruction": determine_turn_direction(angle_to_obstacle, angle_of_robot),
                     "angle": "{:.2f}".format(calculate_shortest_angle(angle_of_robot, angle_to_obstacle)),
@@ -42,7 +42,7 @@ def determineNextMove():
     else:
 
         if is_obstacle(pink_center, closest_ball_center):
-            obstacle_point = avoid_obstacle(green_center, closest_ball_center, obstacle_center)
+            obstacle_point = avoid_obstacle(green_center, closest_ball_center, get_obstacle_center())
             angle_to_obstacle = calculate_angle(green_center, obstacle_point)
             # den rammer forhindring på vej til bold.
             data = {"instruction": determine_turn_direction(angle_to_obstacle, angle_of_robot),

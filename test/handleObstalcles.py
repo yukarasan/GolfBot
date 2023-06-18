@@ -6,6 +6,9 @@ global obstacle_points
 global obstacle_center
 
 
+def get_obstacle_center():
+    return obstacle_center
+
 # skal måske ændres ift hvordan koordinaterne er for framen.
 def avoid_obstacle(robot, ball, center):
     robot_q = find_quadrant(robot, center)
