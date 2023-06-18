@@ -2,20 +2,23 @@ import cv2
 import numpy as np
 import math
 from flask import Flask, jsonify
+from handleObstalcles import avoid_obstacle, get_obstacle_center, is_obstacle, detect_obstacle
 import threading
+
 
 from server.Logic.DetermineInstruction import determine_turn_direction, \
     calculate_shortest_angle, determine_goal_instruction, ball_instruction
 
 app = Flask(__name__)
 
+
 def flask_server():
     app.run(port=8081)
 
 
 def is_point_inside_squares(point, square1_top_left, square1_bottom_right, square2_top_left, square2_bottom_right):
-    #Check if a point is inside any of the provided squares.
-    #Returns: True if the point is inside any of the squares, False otherwise
+    # Check if a point is inside any of the provided squares.
+    # Returns: True if the point is inside any of the squares, False otherwise
     if (
             (square1_top_left[0] <= point[0] <= square1_bottom_right[0] and
              square1_top_left[1] <= point[1] <= square1_bottom_right[1]) or
@@ -26,17 +29,26 @@ def is_point_inside_squares(point, square1_top_left, square1_bottom_right, squar
     else:
         return False
 
+
 @app.route("/")
 def determineNextMove():
+    obstacle_point = avoid_obstacle(green_center, target_goal, get_obstacle_center())
+    obstacle_angle = calculate_angle(green_center, obstacle_point)
+    obstacle_distance = determine_distance_to_obstacle(green_center, obstacle_point)
     # if nuværende antalBolde == 5 || antal == 0 --> gå til goal, else --> gå til nærmeste bold
-    #if num_balls_white + num_balls_orange == 5 or num_balls_white + num_balls_orange == 0:
+    # if num_balls_white + num_balls_orange == 5 or num_balls_white + num_balls_orange == 0:
     if num_balls == 0:
+
+
         goal_instruction = determine_goal_instruction(angle_to_goal,
                                                       angle_of_robot,
                                                       goal_distance,
                                                       distance_to_goal_point=goal_point_distance,
                                                       angle_to_goal_point=goal_point_angle,
-                                                      robot_in_squares=robot_in_squares
+                                                      robot_in_squares=robot_in_squares,
+                                                      is_obstacle=is_obstacle(green_center, target_goal),
+                                                      obstacle_angle=obstacle_angle,
+                                                      obstacle_distance=obstacle_distance
                                                       )
         data = {"instruction": goal_instruction[0],
                 "angle": "{:.2f}".format(goal_instruction[1]),
@@ -45,12 +57,15 @@ def determineNextMove():
                 }
     else:
         ball_instructions = ball_instruction(angle_of_robot=angle_of_robot,
-                                              angle_of_ball=angle_to_ball,
-                                              distance_to_ball= ball_distance,
-                                              angle_of_ball_point=angle_of_ball_point,
-                                              distance_to_ball_point=distance_to_ball_point,
-                                              ball_point_coordinates= ball_point
-                                              )
+                                             angle_of_ball=angle_to_ball,
+                                             distance_to_ball=ball_distance,
+                                             angle_of_ball_point=angle_of_ball_point,
+                                             distance_to_ball_point=distance_to_ball_point,
+                                             ball_point_coordinates=ball_point,
+                                             is_obstacle=is_obstacle(green_center, target_goal),
+                                             obstacle_angle=obstacle_angle,
+                                             obstacle_distance=obstacle_distance
+                                             )
         data = {"instruction": ball_instructions[0],
                 "angle": "{:.2f}".format(ball_instructions[1]),
                 "distance": "{:.2f}".format(ball_instructions[2]),
@@ -58,6 +73,7 @@ def determineNextMove():
                 }
 
     return jsonify(data)
+
 
 angle_to_ball = 0
 angle_of_robot = 0
@@ -77,8 +93,11 @@ pink_center_back = None
 
 num_balls = None
 
+target_goal = None
+
 def flask_server():
     app.run(host="0.0.0.0", port=8081)
+
 
 cap = cv2.VideoCapture(0)
 
@@ -90,7 +109,7 @@ upper_green = np.array([80, 255, 255], dtype=np.uint8)
 lower_white = np.array([0, 0, 200])
 upper_white = np.array([180, 30, 255])
 
-#Range for red
+# Range for red
 red_lower = np.array([0, 100, 100])
 red_upper = np.array([10, 255, 255])
 a = 0
@@ -99,6 +118,7 @@ a = 0
 lower_orange = np.array([25, 50, 20])
 upper_orange = np.array([32, 110, 255])
 kernel = np.ones((5, 5), np.uint8)
+
 
 def calculate_angle_between_lines(p1, p2, p3, p4):
     # Calculate slopes
@@ -127,15 +147,20 @@ def calculate_angle_between_lines(p1, p2, p3, p4):
 
     return angle
 
+
 def calculate_distance(pt1, pt2):
     # Calculate Euclidean distance between two points
     return np.sqrt((pt1[0] - pt2[0]) ** 2 + (pt1[1] - pt2[1]) ** 2)
+
+def determine_distance_to_obstacle(robot, obstacle_point):
+    return calculate_distance(robot, obstacle_point) * conversion_factor
 
 def calculate_angle(center1, center2):
     x1, y1 = center1
     x2, y2 = center2
     angle = math.degrees(math.atan2(y2 - y1, x2 - x1))
     return angle
+
 
 def calculate_new_coordinates(center, angle, distance):
     x, y = center
@@ -175,6 +200,7 @@ def draw_line_to_goals(image, start, end, color, thickness=2):
 
     # Draw a line from start to end using cv2.line() function
     cv2.line(image, start, end, color, thickness)
+
 
 # Initialize conversion factor
 conversion_factor = None
@@ -268,7 +294,7 @@ while True:
         if pink_moment["m00"] != 0 and green_moment["m00"] != 0:
             pink_center = (int(pink_moment["m10"] / pink_moment["m00"]), int(pink_moment["m01"] / pink_moment["m00"]))
             green_center = (
-            int(green_moment["m10"] / green_moment["m00"]), int(green_moment["m01"] / green_moment["m00"]))
+                int(green_moment["m10"] / green_moment["m00"]), int(green_moment["m01"] / green_moment["m00"]))
 
             # Calculate the angle between the centers of blue and green rectangles
             angle_of_robot = robot_angle = calculate_angle(pink_center, green_center)
@@ -277,7 +303,8 @@ while True:
             draw_line(frame, pink_center, green_center, (0, 255, 0), thickness=2)
 
             # Display the angle on the frame
-            cv2.putText(frame, "Robot angle: {:.2f}".format(robot_angle), (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
+            cv2.putText(frame, "Robot angle: {:.2f}".format(robot_angle), (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7,
+                        (0, 255, 0), 2)
 
     # Apply morphological operations
     mask_green = cv2.erode(mask_green, kernel, iterations=1)
@@ -285,7 +312,7 @@ while True:
     mask_red = cv2.erode(mask_red, kernel, iterations=1)
     mask_red = cv2.dilate(mask_red, kernel, iterations=1)
 
-    #Blur mask for red object
+    # Blur mask for red object
     blur_red = cv2.blur(mask_red, (14, 14))
 
     # Find contours for red object
@@ -323,7 +350,8 @@ while True:
         cX = int(M["m10"] / M["m00"])
         cY = int(M["m01"] / M["m00"])
         cv2.circle(frame, (cX, cY), 7, (255, 255, 255), -1)
-        cv2.putText(frame, f"centroid {cX}, {cY}", (cX - 20, cY - 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
+        cv2.putText(frame, f"centroid {cX}, {cY}", (cX - 20, cY - 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255),
+                    2)
 
         # Find white object and draw minimum enclosing circle
         contours_white, _ = cv2.findContours(mask_white, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -337,7 +365,8 @@ while True:
         # Apply a blur to reduce noise
         image_blur = cv2.GaussianBlur(gray, (5, 5), 0)
 
-        circles = cv2.HoughCircles(image_blur, cv2.HOUGH_GRADIENT, dp=1, minDist=30, param1=55, param2=25, minRadius=13, maxRadius=18)
+        circles = cv2.HoughCircles(image_blur, cv2.HOUGH_GRADIENT, dp=1, minDist=30, param1=55, param2=25, minRadius=13,
+                                   maxRadius=18)
 
         on_y_axis_1 = 270
         on_y_axis_2 = 740
@@ -367,7 +396,7 @@ while True:
             if closest_ball_center is not None:
                 if closest_ball_center[1] <= on_y_axis_1 or closest_ball_center[1] >= on_y_axis_2:
 
-                # Find the closest line on the y-axis
+                    # Find the closest line on the y-axis
                     if abs(closest_ball_center[1] - on_y_axis_1) < abs(closest_ball_center[1] - on_y_axis_2):
                         closest_line = (closest_ball_center[0], on_y_axis_1)
                     else:
@@ -375,8 +404,10 @@ while True:
 
                         # Calculate the slope of the line perpendicular to the y-axis
                     if closest_ball_center[0] != closest_line[0]:
-                        slope = -1 / ((closest_line[1] - closest_ball_center[1]) / (closest_line[0] - closest_ball_center[0]))
-                    else: slope = float('inf')
+                        slope = -1 / ((closest_line[1] - closest_ball_center[1]) / (
+                                    closest_line[0] - closest_ball_center[0]))
+                    else:
+                        slope = float('inf')
 
                     # Calculate the intercept of the perpendicular line
                     intercept = closest_ball_center[1] - slope * closest_ball_center[0]
@@ -404,7 +435,8 @@ while True:
 
         # Convert pixel distance to cm and display it on the frame
         ball_distance = distance_cm = min_distance * conversion_factor
-        cv2.putText(frame, f"Distance: {distance_cm:.2f} cm", (cX - 20, cY - 40), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
+        cv2.putText(frame, f"Distance: {distance_cm:.2f} cm", (cX - 20, cY - 40), cv2.FONT_HERSHEY_SIMPLEX, 0.5,
+                    (0, 0, 255), 2)
 
         cv2.circle(frame, pink_center_back, 10, (255, 0, 255), -1)
         # Calculate and display angle between the two lines
@@ -412,10 +444,11 @@ while True:
 
         cv2.putText(frame, f"Angle to ball: {ball_angle:.2f}", (10, 50), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 0, 0), 2)
 
-    #Keeping track of whether the robot is in the squares or not
-    robot_in_squares = is_point_inside_squares(pink_center, left_rect_top_left, left_rect_bottom_right, right_rect_top_left, right_rect_bottom_right)
-    #print(robot_in_squares)
-    #Distance to ball point
+    # Keeping track of whether the robot is in the squares or not
+    robot_in_squares = is_point_inside_squares(pink_center, left_rect_top_left, left_rect_bottom_right,
+                                               right_rect_top_left, right_rect_bottom_right)
+    # print(robot_in_squares)
+    # Distance to ball point
     if closest_ball_center is not None:
         distance_to_ball_point = calculate_distance(pink_center_back, ball_point) * conversion_factor
         angle_of_ball_point = calculate_angle(pink_center_back, ball_point)
@@ -437,8 +470,11 @@ while True:
     distance_to_right_goal_point = calculate_distance(pink_center, goal_point_right) * conversion_factor
 
     goal_angle = None
+
     # Draw a line to the closest goal
     if distance_to_left_goal < distance_to_right_goal:
+        target_goal = goal_left
+
         angle_to_goal = goal_angle = calculate_angle(pink_center, goal_left)
         goal_distance = distance_to_left_goal
         draw_line_to_goals(frame, pink_center, goal_left, (0, 255, 255), thickness=2)
@@ -446,6 +482,8 @@ while True:
         goal_point_angle = calculate_angle(pink_center, goal_point_left)
         goal_point_distance = distance_to_left_goal_point
     else:
+        target_goal = goal_right
+
         angle_to_goal = goal_angle = calculate_angle(pink_center, goal_right)
         goal_distance = distance_to_right_goal
         draw_line_to_goals(frame, pink_center, goal_right, (0, 255, 255), thickness=2)
@@ -454,11 +492,13 @@ while True:
         goal_point_distance = distance_to_right_goal_point
 
     cv2.putText(frame, f"Angle to goal: {goal_angle:.2f}", (10, 70), cv2.FONT_HERSHEY_SIMPLEX,
-                    0.7, (255, 0, 0), 2)
+                0.7, (255, 0, 0), 2)
     cv2.putText(frame, f"distance to goal: {goal_distance:.2f}", (10, 90), cv2.FONT_HERSHEY_SIMPLEX,
-                    0.7, (255, 0, 0), 2)
+                0.7, (255, 0, 0), 2)
 
     cv2.drawContours(frame, contours_red, -1, (0, 0, 0), 3)
+
+    obstacle_contours, frame = detect_obstacle(frame)
 
     cv2.imshow('All Contours', frame)
 
