@@ -90,6 +90,7 @@ angle_of_ball_point = 0
 robot_in_squares = False
 
 pink_center_back = None
+green_center = None
 
 num_balls = None
 
