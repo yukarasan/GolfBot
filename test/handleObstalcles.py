@@ -19,15 +19,19 @@ def avoid_obstacle(robot, ball, center):
 
     if abs(robot_q - ball_q) == 2:
         print('gå til nærmeste', )
-
         dest = get_closest_corner(robot)
+        move_to = obstacle_points[dest - 1]
+
+
+    elif robot_q == ball_q:
+        print('gå hen til bold')
+        move_to = ball
     else:
         print('gå til boldkvadrant  ', ball_q)
-
         dest = ball_q
+        move_to = obstacle_points[dest - 1]
 
     # move to dest
-    move_to = obstacle_points[dest - 1]
     return move_to
 
 
