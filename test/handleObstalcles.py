@@ -97,7 +97,7 @@ def draw_rect_and_center(image, contours):
 
             # Calculate the rotation angle and scale factor
             angle = 45
-            scale_factor = 1.8
+            scale_factor = 3
 
             # Rotate and scale the bounding rectangle
             rotation_matrix = cv2.getRotationMatrix2D((center_x, center_y), angle, scale_factor)
