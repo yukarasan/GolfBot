@@ -93,6 +93,8 @@ def draw_rect_and_center(image, contours):
             center_x = int(rect[0][0])
             center_y = int(rect[0][1])
 
+            obstacle_center = (center_x, center_y)
+
             # Calculate the rotation angle and scale factor
             angle = 45
             scale_factor = 1.8
