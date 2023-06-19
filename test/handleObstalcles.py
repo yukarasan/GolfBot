@@ -14,11 +14,16 @@ def avoid_obstacle(robot, ball, center):
     robot_q = find_quadrant(robot, center)
     ball_q = find_quadrant(ball, center)
 
+    print("robottens kvadrant", robot_q)
+    print("boldens kvadrant", ball_q)
+
     if abs(robot_q - ball_q) == 2:
-        print('gå til nærmeste')
+        print('gå til nærmeste', )
+
         dest = get_closest_corner(robot)
     else:
-        print('gå til boldkvadrant')
+        print('gå til boldkvadrant  ', ball_q)
+
         dest = ball_q
 
     # move to dest
@@ -35,7 +40,7 @@ def is_obstacle(line_start, line_end):
     intersection3 = line_intersection(line_start, line_end, top_right, bottom_right)
     intersection4 = line_intersection(line_start, line_end, bottom_left, bottom_right)
 
-    if intersection1[0] or intersection2[0] or intersection3[0] or intersection4[0]:
+    if intersection1 or intersection2 or intersection3 or intersection4:
         return True
 
     return False
@@ -60,8 +65,7 @@ def line_intersection(line1_start, line1_end, line2_start, line2_end):
 
     # Check if the intersection point is within the line segments
     if 0 <= t <= 1 and 0 <= u <= 1:
-        intersection_point = (line1_start[0] + t * delta_p1p2[0], line1_start[1] + t * delta_p1p2[1])
-        return True, intersection_point
+        return True
 
     return False
 
@@ -142,17 +146,15 @@ def lineIntersection1(x1, y1, x2, y2):
 
 
 def find_quadrant(obj_coordinate, center_coordinate):
-    x_new = obj_coordinate[0] - center_coordinate[0]
-    y_new = obj_coordinate[1] - center_coordinate[1]
-
-    if x_new > 0 and y_new > 0:
+    if obj_coordinate[0] > center_coordinate[0] and obj_coordinate[1] > center_coordinate[1]:
         return 1
-    elif x_new < 0 < y_new:
+    elif obj_coordinate[0] < center_coordinate[0] and obj_coordinate[1] > center_coordinate[1]:
         return 2
-    elif x_new < 0 and y_new < 0:
+    elif obj_coordinate[0] < center_coordinate[0] and obj_coordinate[1] < center_coordinate[1]:
         return 3
-    elif x_new > 0 > y_new:
+    elif obj_coordinate[0] > center_coordinate[0] and obj_coordinate[1] < center_coordinate[1]:
         return 4
+
 
 
 def get_closest_corner(robot_coordinate):
