@@ -168,7 +168,7 @@ def get_closest_corner(robot_coordinate):
     closest_corner_index = distances.index(min(distances))
 
     # Return the closest corner
-    return corners[closest_corner_index]
+    return closest_corner_index
 
 
 def is_robot_close_to_obstacle(robot_contour, square_contour):
