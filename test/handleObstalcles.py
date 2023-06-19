@@ -43,27 +43,28 @@ def is_obstacle(line_start, line_end):
 
 def line_intersection(line1_start, line1_end, line2_start, line2_end):
     # Calculate the differences
-    delta_p1p2 = line1_end - line1_start
-    delta_p3p4 = line2_end - line2_start
+    delta_p1p2 = (line1_end[0] - line1_start[0], line1_end[1] - line1_start[1])
+    delta_p3p4 = (line2_end[0] - line2_start[0], line2_end[1] - line2_start[1])
 
     # Calculate the determinant
-    det = np.linalg.det(np.vstack((delta_p1p2, -delta_p3p4)))
+    det = delta_p1p2[0] * delta_p3p4[1] - delta_p1p2[1] * delta_p3p4[0]
 
     # Check if the lines are parallel or coincident
-    if np.abs(det) < 1e-6:
+    if abs(det) < 1e-6:
         return False
 
     # Calculate the parameters for the line equations
-    delta_p3p1 = line1_start - line2_start
-    t = np.linalg.det(np.vstack((delta_p3p4, -delta_p3p1))) / det
-    u = -np.linalg.det(np.vstack((delta_p1p2, -delta_p3p1))) / det
+    delta_p3p1 = (line1_start[0] - line2_start[0], line1_start[1] - line2_start[1])
+    t = (delta_p3p4[0] * delta_p3p1[1] - delta_p3p4[1] * delta_p3p1[0]) / det
+    u = (-delta_p1p2[0] * delta_p3p1[1] + delta_p1p2[1] * delta_p3p1[0]) / det
 
     # Check if the intersection point is within the line segments
     if 0 <= t <= 1 and 0 <= u <= 1:
-        intersection_point = line1_start + t * delta_p1p2
+        intersection_point = (line1_start[0] + t * delta_p1p2[0], line1_start[1] + t * delta_p1p2[1])
         return True, intersection_point
 
     return False
+
 
 def draw_rect_and_center(image, contours):
     global top_left, top_right, bottom_right, bottom_left, obstacle_points, obstacle_center
