@@ -30,16 +30,40 @@ def is_obstacle(line_start, line_end):
     global top_left, top_right, bottom_right, bottom_left
 
     # Check if the line intersects with any of the edges of the rectangle
-    intersection1 = cv2.lineIntersection(line_start, line_end, top_left, top_right)
-    intersection2 = cv2.lineIntersection(line_start, line_end, top_left, bottom_left)
-    intersection3 = cv2.lineIntersection(line_start, line_end, top_right, bottom_right)
-    intersection4 = cv2.lineIntersection(line_start, line_end, bottom_left, bottom_right)
+    intersection1 = line_intersection(line_start, line_end, top_left, top_right)
+    intersection2 = line_intersection(line_start, line_end, top_left, bottom_left)
+    intersection3 = line_intersection(line_start, line_end, top_right, bottom_right)
+    intersection4 = line_intersection(line_start, line_end, bottom_left, bottom_right)
 
     if intersection1[0] or intersection2[0] or intersection3[0] or intersection4[0]:
         return True
 
     return False
 
+
+def line_intersection(line1_start, line1_end, line2_start, line2_end):
+    # Calculate the differences
+    delta_p1p2 = line1_end - line1_start
+    delta_p3p4 = line2_end - line2_start
+
+    # Calculate the determinant
+    det = np.linalg.det(np.vstack((delta_p1p2, -delta_p3p4)))
+
+    # Check if the lines are parallel or coincident
+    if np.abs(det) < 1e-6:
+        return False
+
+    # Calculate the parameters for the line equations
+    delta_p3p1 = line1_start - line2_start
+    t = np.linalg.det(np.vstack((delta_p3p4, -delta_p3p1))) / det
+    u = -np.linalg.det(np.vstack((delta_p1p2, -delta_p3p1))) / det
+
+    # Check if the intersection point is within the line segments
+    if 0 <= t <= 1 and 0 <= u <= 1:
+        intersection_point = line1_start + t * delta_p1p2
+        return True, intersection_point
+
+    return False
 
 def draw_rect_and_center(image, contours):
     global top_left, top_right, bottom_right, bottom_left
@@ -82,11 +106,32 @@ def draw_rect_and_center(image, contours):
             bottom_left = obstacle_points[2]
             bottom_right = obstacle_points[3]
 
-            # Draw the rotated and scaled bounding rectangle
-            cv2.drawContours(image, [rotated_box], 0, (0, 0, 255), 2)
+    # Draw the rotated and scaled bounding rectangle
+    cv2.drawContours(image, [rotated_box], 0, (0, 0, 255), 2)
 
-            # Draw a circle to represent the center of the bounding rectangle
-            cv2.circle(image, (center_x, center_y), 3, (0, 255, 0), -1)
+    # Draw a circle to represent the center of the bounding rectangle
+    cv2.circle(image, (center_x, center_y), 3, (0, 255, 0), -1)
+
+
+def lineIntersection1(x1, y1, x2, y2):
+    #p1 og p2 er robot. p3 og p4 er dest_punkt
+    for point in obstacle_points:
+        x3 = obstacle_points[point][0]
+        y3 = obstacle_points[(point+1)%4][0]
+        x4 = obstacle_points[point][1]
+        y4 = obstacle_points[(point+1)%4][1]
+
+        denominator = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4)
+
+        if denominator != 0:
+            # Calculate the intersection point coordinates
+            intersection_x = ((x1 * y2 - y1 * x2) * (x3 - x4) - (x1 - x2) * (x3 * y4 - y3 * x4)) / denominator
+            intersection_y = ((x1 * y2 - y1 * x2) * (y3 - y4) - (y1 - y2) * (x3 * y4 - y3 * x4)) / denominator
+
+            return int(intersection_x), int(intersection_y)
+        else:
+            # Lines are parallel or coincident, no intersection exists
+            return None
 
 
 
