@@ -74,6 +74,7 @@ angle_of_ball_point = 0
 robot_in_squares = False
 pink_center = None
 pink_center_back = None
+closest_ball_center = None
 
 num_balls = None
 
@@ -329,7 +330,7 @@ while True:
         contours_white, _ = cv2.findContours(mask_white, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         min_distance = np.inf
         min_distance_orange = np.inf
-        closest_ball_center = None
+
 
         # Convert BGR to grayscale
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
