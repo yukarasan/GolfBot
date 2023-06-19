@@ -62,7 +62,7 @@ def determineNextMove():
                                              angle_of_ball_point=angle_of_ball_point,
                                              distance_to_ball_point=distance_to_ball_point,
                                              ball_point_coordinates=ball_point,
-                                             is_obstacle=is_obstacle(green_center, target_goal),
+                                             is_obstacle=is_obstacle(green_center, closest_ball_center),
                                              obstacle_angle=obstacle_angle,
                                              obstacle_distance=obstacle_distance
                                              )
