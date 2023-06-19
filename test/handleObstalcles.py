@@ -47,6 +47,7 @@ def is_obstacle(line_start, line_end):
 
 
 def line_intersection(line1_start, line1_end, line2_start, line2_end):
+
     # Calculate the differences
     delta_p1p2 = (line1_end[0] - line1_start[0], line1_end[1] - line1_start[1])
     delta_p3p4 = (line2_end[0] - line2_start[0], line2_end[1] - line2_start[1])

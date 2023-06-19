@@ -32,14 +32,13 @@ def is_point_inside_squares(point, square1_top_left, square1_bottom_right, squar
 
 @app.route("/")
 def determineNextMove():
-    obstacle_point = avoid_obstacle(green_center, target_goal, get_obstacle_center())
-    obstacle_angle = calculate_angle(green_center, obstacle_point)
-    obstacle_distance = determine_distance_to_obstacle(green_center, obstacle_point)
+
     # if nuværende antalBolde == 5 || antal == 0 --> gå til goal, else --> gå til nærmeste bold
     # if num_balls_white + num_balls_orange == 5 or num_balls_white + num_balls_orange == 0:
     if num_balls == 0:
-
-
+        obstacle_point = avoid_obstacle(green_center, target_goal, get_obstacle_center())
+        obstacle_angle = calculate_angle(green_center, obstacle_point)
+        obstacle_distance = determine_distance_to_obstacle(green_center, obstacle_point)
         goal_instruction = determine_goal_instruction(angle_to_goal,
                                                       angle_of_robot,
                                                       goal_distance,
@@ -56,6 +55,10 @@ def determineNextMove():
                 "go to goal": "yes"
                 }
     else:
+        obstacle_point = avoid_obstacle(green_center, closest_ball_center, get_obstacle_center())
+        obstacle_angle = calculate_angle(green_center, obstacle_point)
+        obstacle_distance = determine_distance_to_obstacle(green_center, obstacle_point)
+
         ball_instructions = ball_instruction(angle_of_robot=angle_of_robot,
                                              angle_of_ball=angle_to_ball,
                                              distance_to_ball=ball_distance,
