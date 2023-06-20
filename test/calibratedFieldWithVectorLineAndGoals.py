@@ -3,6 +3,9 @@ import numpy as np
 import math
 from flask import Flask, jsonify
 import threading
+import time
+
+
 
 from server.Logic.DetermineInstruction import determine_turn_direction, \
     calculate_shortest_angle, determine_goal_instruction, ball_instruction
@@ -30,7 +33,7 @@ def is_point_inside_squares(point, square1_top_left, square1_bottom_right, squar
 def determineNextMove():
     # if nuværende antalBolde == 5 || antal == 0 --> gå til goal, else --> gå til nærmeste bold
     #if num_balls_white + num_balls_orange == 5 or num_balls_white + num_balls_orange == 0:
-    if num_balls == 0:
+    if num_balls == 0 or time.time() - start_time >= 200:
         goal_instruction = determine_goal_instruction(angle_to_goal,
                                                       angle_of_robot,
                                                       goal_distance,
@@ -184,7 +187,11 @@ conversion_factor = None
 flask_thread = threading.Thread(target=flask_server)
 flask_thread.start()
 
+# Starting the timer
+start_time = time.time()
+
 while True:
+
     ret, frame = cap.read()
 
     if not ret:
@@ -193,6 +200,8 @@ while True:
     wall_thickness = 550
 
     frame_height, frame_width = frame.shape[:2]
+
+    print(int(time.time() - start_time))
 
     # Calculate the midpoints for the goals
     # Adjusting them by half of the wall's thickness
@@ -226,7 +235,6 @@ while True:
     cv2.rectangle(frame, right_rect_top_left, right_rect_bottom_right, (0, 0, 0), 2)
 
     ####
-
     hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
     # Mask for green object
@@ -338,16 +346,16 @@ while True:
         # Apply a blur to reduce noise
         image_blur = cv2.GaussianBlur(gray, (5, 5), 0)
 
-        circles = cv2.HoughCircles(image_blur, cv2.HOUGH_GRADIENT, dp=1, minDist=30, param1=55, param2=25, minRadius=12, maxRadius=18)
+        circles = cv2.HoughCircles(image_blur, cv2.HOUGH_GRADIENT, dp=1, minDist=30, param1=55, param2=25, minRadius=13, maxRadius=18)
 
-        on_y_axis_1 = 270
-        on_y_axis_2 = 740
+        on_y_axis_1 = 200
+        on_y_axis_2 = 820
 
         cv2.line(frame, (0, on_y_axis_1), (frame.shape[1], on_y_axis_1), (255, 0, 0), 3)  # Line at y
         cv2.line(frame, (0, on_y_axis_2), (frame.shape[1], on_y_axis_2), (255, 0, 0), 3)  # Line at y
 
         on_x_axis_1 = 500
-        on_x_axis_2 = 1400
+        on_x_axis_2 = 1450
 
         cv2.line(frame, (on_x_axis_1, 0), (on_x_axis_1, frame.shape[0]), (255, 0, 0), 3)  # Line at x
         cv2.line(frame, (on_x_axis_2, 0), (on_x_axis_2, frame.shape[0]), (255, 0, 0), 3)  # Line at y
@@ -379,17 +387,18 @@ while True:
                     if closest_ball_center[0] <= on_x_axis_1:
                         if closest_ball_center[1] <= on_y_axis_1:
                             # Ball is in the top-left corner
-                            closest_line = (on_x_axis_1, on_y_axis_1)
+                            ball_point = closest_line = (on_x_axis_1, on_y_axis_1)
+
                         elif closest_ball_center[1] > on_y_axis_1:
                             # Ball is in the bottom-left corner
-                            closest_line = (on_x_axis_1, on_y_axis_2)
+                            ball_point = closest_line = (on_x_axis_1, on_y_axis_2)
                     else: #Top or bottom on right side?
                         if closest_ball_center[1] <= on_y_axis_1:
                             # Ball is in the top-right corner
-                            closest_line = (on_x_axis_2, on_y_axis_1)
+                            ball_point = closest_line = (on_x_axis_2, on_y_axis_1)
                         elif closest_ball_center[1] > on_y_axis_1:
                             # Ball is in the bottom-right corner
-                            closest_line = (on_x_axis_2, on_y_axis_2)
+                            ball_point = closest_line = (on_x_axis_2, on_y_axis_2)
 
                     cv2.line(frame, closest_ball_center, closest_line, (0, 0, 255), 2)
 
@@ -494,24 +503,25 @@ while True:
 
     goal_angle = None
     # Draw a line to the closest goal
-    if distance_to_left_goal < distance_to_right_goal:
-        angle_to_goal = goal_angle = calculate_angle(pink_center, goal_left)
-        goal_distance = distance_to_left_goal
-        draw_line_to_goals(frame, pink_center, goal_left, (0, 255, 255), thickness=2)
+    if pink_center is not None:
+        if distance_to_left_goal < distance_to_right_goal:
+            angle_to_goal = goal_angle = calculate_angle(pink_center, goal_left)
+            goal_distance = distance_to_left_goal
+            draw_line_to_goals(frame, pink_center, goal_left, (0, 255, 255), thickness=2)
 
-        goal_point_angle = calculate_angle(pink_center, goal_point_left)
-        goal_point_distance = distance_to_left_goal_point
-    else:
-        angle_to_goal = goal_angle = calculate_angle(pink_center, goal_right)
-        goal_distance = distance_to_right_goal
-        draw_line_to_goals(frame, pink_center, goal_right, (0, 255, 255), thickness=2)
+            goal_point_angle = calculate_angle(pink_center, goal_point_left)
+            goal_point_distance = distance_to_left_goal_point
+        else:
+            angle_to_goal = goal_angle = calculate_angle(pink_center, goal_right)
+            goal_distance = distance_to_right_goal
+            draw_line_to_goals(frame, pink_center, goal_right, (0, 255, 255), thickness=2)
 
-        goal_point_angle = calculate_angle(pink_center, goal_point_right)
-        goal_point_distance = distance_to_right_goal_point
+            goal_point_angle = calculate_angle(pink_center, goal_point_right)
+            goal_point_distance = distance_to_right_goal_point
 
-    cv2.putText(frame, f"Angle to goal: {goal_angle:.2f}", (10, 70), cv2.FONT_HERSHEY_SIMPLEX,
+        cv2.putText(frame, f"Angle to goal: {goal_angle:.2f}", (10, 70), cv2.FONT_HERSHEY_SIMPLEX,
                     0.7, (255, 0, 0), 2)
-    cv2.putText(frame, f"distance to goal: {goal_distance:.2f}", (10, 90), cv2.FONT_HERSHEY_SIMPLEX,
+        cv2.putText(frame, f"distance to goal: {goal_distance:.2f}", (10, 90), cv2.FONT_HERSHEY_SIMPLEX,
                     0.7, (255, 0, 0), 2)
 
     cv2.drawContours(frame, contours_red, -1, (0, 0, 0), 3)
