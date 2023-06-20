@@ -9,6 +9,7 @@ import time
 
 from server.Logic.DetermineInstruction import determine_turn_direction, \
     calculate_shortest_angle, determine_goal_instruction, ball_instruction
+from handleObstacles_2 import detect_obstacle
 
 app = Flask(__name__)
 
@@ -193,6 +194,8 @@ start_time = time.time()
 while True:
 
     ret, frame = cap.read()
+
+    detect_obstacle(frame)
 
     if not ret:
         break
