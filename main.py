@@ -128,7 +128,7 @@ def main():
         reverse_distance = -100  # Distance to move backwards (10 cm)
 
         # If an object is detected within the stop distance, stop and move backwards else keep asking for instructions
-        if (press_count >= 3) and going_to_goal == 0:
+        if (press_count >= 1) and going_to_goal == 0:
             print("The press count has been reached")
             press_count = 0
             wait(500)  # Wait for 500 milliseconds
@@ -214,7 +214,7 @@ def process_instruction(
         if direction_counter >= 20:
             direction_counter = 0
 
-            if (press_count >= 3) and going_to_goal == 0:
+            if (press_count >= 1) and going_to_goal == 0:
                 print("The press count has been reached")
                 press_count = 0
                 wait(500)
@@ -228,7 +228,7 @@ def process_instruction(
         angle = float(instruction["angle"])
         distance = float(instruction["distance"])
 
-        if (press_count >= 3) and going_to_goal == 0:
+        if (press_count >= 1) and going_to_goal == 0:
             print("The press count has been reached")
             press_count = 0
             wait(500)
@@ -245,7 +245,7 @@ def process_instruction(
         angle = float(instruction["angle"])
         distance = float(instruction["distance"])
 
-        if (press_count >= 3) and going_to_goal == 0:
+        if (press_count >= 1) and going_to_goal == 0:
             print("The press count has been reached")
             press_count = 0
             wait(500)
@@ -262,7 +262,7 @@ def process_instruction(
         distance = float(instruction["distance"])
         angle = float(instruction["angle"])
 
-        if (press_count >= 3) and going_to_goal == 0:
+        if (press_count >= 1) and going_to_goal == 0:
             print("The press count has been reached")
             press_count = 0
             wait(500)
