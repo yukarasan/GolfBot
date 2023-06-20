@@ -86,7 +86,7 @@ def main():
     right_wheel = Motor(Port.B)
     four_wheel_mechanism = Motor(Port.D)
     spinner = Motor(Port.C)
-    color_sensor = ColorSensor(Port.S1)
+    red_color_sensor = ColorSensor(Port.S1)
     # ultrasonic = UltrasonicSensor(Port.S1)
 
     # Wheel diameter and axle track (in millimeters)
@@ -116,10 +116,16 @@ def main():
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.connect(("192.168.1.215", 8081))  # 10.209.234.177 || 172.20.10.4
 
+        # Get the distance to the nearest object
+        # distance = ultrasonic.distance()
+        # print("Distance to wall:", distance)
+        distance = 100
+
+        stop_distance = 40  # Distance to stop at (4 cm)
         reverse_distance = -100  # Distance to move backwards (10 cm)
 
         # If an object is detected within the stop distance, stop and move backwards else keep asking for instructions
-        if (is_color_red(color_sensor)) and going_to_goal == 0:
+        if (distance <= stop_distance or distance > 3000) and going_to_goal == 0:
             wait(500)  # Wait for 500 milliseconds
             robot.straight(reverse_distance)
         else:
@@ -147,7 +153,7 @@ def main():
                         four_wheel_mechanism_thread=four_wheel_mechanism_thread,
                         spinner_thread=spinner_thread,
                         outwards_spinner_thread=outwards_spinner_thread,
-                        color_sensor=color_sensor,
+                        distance_to_wall=distance
                     )
                 else:
                     print('Request failed.')
@@ -177,10 +183,12 @@ def process_instruction(
         four_wheel_mechanism_thread: FourWheelMechanism,
         spinner_thread: SpinnerThreadInwards,
         outwards_spinner_thread: SpinnerThreadOutward,
-        color_sensor: ColorSensor
+        distance_to_wall: int
 ):
     stop_distance = 40  # Distance to stop at (4 cm)
     reverse_distance = -100  # Distance to move backwards (10 cm)
+
+    print("Distance to wall:", distance_to_wall)
 
     # if instruction "go to goal" is "yes" then stop the spinner
     if instruction["go to goal"] == "yes":
@@ -204,7 +212,7 @@ def process_instruction(
         if direction_counter >= 20:
             direction_counter = 0
 
-            if (is_color_red(color_sensor)) and going_to_goal == 0:
+            if (distance_to_wall <= stop_distance or distance_to_wall > 3000) and going_to_goal == 0:
                 wait(500)
                 robot.straight(reverse_distance)
             else:
@@ -216,7 +224,7 @@ def process_instruction(
         angle = float(instruction["angle"])
         distance = float(instruction["distance"])
 
-        if (is_color_red(color_sensor)) and going_to_goal == 0:
+        if (distance_to_wall <= stop_distance or distance_to_wall > 3000) and going_to_goal == 0:
             wait(500)
             robot.straight(reverse_distance)
         else:
@@ -231,7 +239,7 @@ def process_instruction(
         angle = float(instruction["angle"])
         distance = float(instruction["distance"])
 
-        if (is_color_red(color_sensor)) and going_to_goal == 0:
+        if (distance_to_wall <= stop_distance or distance_to_wall > 3000) and going_to_goal == 0:
             wait(500)
             robot.straight(reverse_distance)
         else:
@@ -247,7 +255,7 @@ def process_instruction(
         angle = float(instruction["angle"])
 
         # If the distance to the wall is less than the stop distance or more than 2000, move in reverse
-        if (is_color_red(color_sensor)) and going_to_goal == 0:
+        if (distance_to_wall <= stop_distance or distance_to_wall > 3000) and going_to_goal == 0:
             wait(500)
             robot.straight(reverse_distance)
         else:
