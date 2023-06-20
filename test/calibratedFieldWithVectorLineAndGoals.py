@@ -509,7 +509,9 @@ while True:
     goal_angle = None
     # Draw a line to the closest goal
     if pink_center is not None:
-        if distance_to_left_goal < distance_to_right_goal:
+        #Setting if we want to go to left goal or not
+        leftGoal = True
+        if distance_to_left_goal < distance_to_right_goal or leftGoal is True:
             angle_to_goal = goal_angle = calculate_angle(pink_center, goal_left)
             goal_distance = distance_to_left_goal
             draw_line_to_goals(frame, pink_center, goal_left, (0, 255, 255), thickness=2)
