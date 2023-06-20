@@ -3,7 +3,7 @@ import numpy as np
 
 global top_left, top_right, bottom_right, bottom_left
 global obstacle_points
-global obstacle_center
+obstacle_center = (int(0), int(0))
 
 
 def get_obstacle_center():

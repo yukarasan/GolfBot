@@ -9,7 +9,7 @@ import time
 
 from server.Logic.DetermineInstruction import determine_turn_direction, \
     calculate_shortest_angle, determine_goal_instruction, ball_instruction
-from handleObstacles_2 import detect_obstacle
+from handleObstacles_2 import detect_obstacle, get_obstacle_center
 
 app = Flask(__name__)
 
@@ -197,6 +197,8 @@ while True:
 
     detect_obstacle(frame)
 
+    cv2.circle(frame, get_obstacle_center(), 3, (0, 255, 0), -1)
+
     if not ret:
         break
 
@@ -371,7 +373,7 @@ while True:
             # Draw the circles
             num_balls = 0
             for (x, y, r) in circles:
-                if x >= goal_left[0] - 12 and x <= goal_right[0] + 12:
+                if x >= goal_left[0] - 12 and x <= goal_right[0] + 12 and calculate_distance(get_obstacle_center(), (x,y)) >= 150:
                     num_balls += 1
                     cv2.circle(frame, (x, y), r, (0, 255, 0), 2)
                     center = (int(x), int(y))
