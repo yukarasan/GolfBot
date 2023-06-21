@@ -34,7 +34,7 @@ def is_point_inside_squares(point, square1_top_left, square1_bottom_right, squar
 def determineNextMove():
     # if nuværende antalBolde == 5 || antal == 0 --> gå til goal, else --> gå til nærmeste bold
     #if num_balls_white + num_balls_orange == 5 or num_balls_white + num_balls_orange == 0:
-    if num_balls == 0 or time.time() - start_time >= 200:
+    if num_balls == 0 or time.time() - start_time >= 420:
         goal_instruction = determine_goal_instruction(angle_to_goal,
                                                       angle_of_robot,
                                                       goal_distance,
@@ -511,7 +511,7 @@ while True:
     if pink_center is not None:
         #Setting if we want to go to left goal or not
         leftGoal = True
-        if distance_to_left_goal < distance_to_right_goal or leftGoal is True:
+        if leftGoal is True:
             angle_to_goal = goal_angle = calculate_angle(pink_center, goal_left)
             goal_distance = distance_to_left_goal
             draw_line_to_goals(frame, pink_center, goal_left, (0, 255, 255), thickness=2)
@@ -531,7 +531,7 @@ while True:
         cv2.putText(frame, f"distance to goal: {goal_distance:.2f}", (10, 90), cv2.FONT_HERSHEY_SIMPLEX,
                     0.7, (255, 0, 0), 2)
 
-    cv2.drawContours(frame, contours_red, -1, (0, 0, 0), 3)
+    #cv2.drawContours(frame, contours_red, -1, (0, 0, 0), 3)
 
     cv2.imshow('All Contours', frame)
 
