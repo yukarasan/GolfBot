@@ -28,7 +28,7 @@ def calculate_shortest_angle(angle1, angle2):
 
 def ball_instruction(angle_of_robot, angle_of_ball, distance_to_ball, angle_of_ball_point, distance_to_ball_point, ball_point_coordinates):
 
-    #If the ball is not on the lower or upper, therefore not close to the walls
+    #If the ball is not on the lower or upper, or on the right or left side, or in the corner, therefore not close to the walls
     if ball_point_coordinates == (0,0):
         return (determine_turn_direction(angle_of_ball, angle_of_robot, distance_to_ball),
                 calculate_shortest_angle(angle_of_robot, angle_of_ball),
@@ -38,7 +38,7 @@ def ball_instruction(angle_of_robot, angle_of_ball, distance_to_ball, angle_of_b
     #If the ball is close to the walls
     else:
         #When to go after the ball point closer to the middle
-        if(distance_to_ball_point >= 15):
+        if(distance_to_ball_point >= 28):
             return (determine_turn_direction(angle_of_ball_point, angle_of_robot, distance_to_ball_point),
                     calculate_shortest_angle(angle_of_robot, angle_of_ball_point),
                     distance_to_ball_point
@@ -73,7 +73,7 @@ def determine_goal_instruction(angle1, angle2, distance_to_goal, distance_to_goa
     shortest_angle = calculate_shortest_angle(angle1, angle2)
 
     ##Hvornår robotten skal skyde
-    if (distance_to_goal <= 16 and abs(shortest_angle) <= 12) or (distance_to_goal <= 14 and abs(shortest_angle) <= 23):
+    if (distance_to_goal <= 15.3 and abs(shortest_angle) <= 20) or distance_to_goal <= 9 and abs(shortest_angle) <= 32:
        return (Instructions.SHOOT.value, 4.00, 0.00)
 
     #If the robot is not in the squares, go towards its middle
