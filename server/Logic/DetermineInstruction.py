@@ -83,7 +83,7 @@ def determine_goal_instruction(angle1, angle2, distance_to_goal, distance_to_goa
     shortest_angle = calculate_shortest_angle(angle1, angle2)
 
     ##Hvornår robotten skal skyde
-    if (distance_to_goal <= 14 and abs(shortest_angle) <= 23) or distance_to_goal <= 9 and abs(shortest_angle) <= 73:
+    if (distance_to_goal <= 15.3 and abs(shortest_angle) <= 20) or distance_to_goal <= 9 and abs(shortest_angle) <= 32:
        return (Instructions.SHOOT.value, 4.00, 0.00)
 
     #If the robot is not in the squares, go towards its middle

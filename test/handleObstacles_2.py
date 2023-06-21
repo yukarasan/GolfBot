@@ -86,7 +86,7 @@ def draw_rect_and_center(image, contours):
         approx = cv2.approxPolyDP(contour, epsilon, True)
 
         # Check if the contour has a certain size range
-        min_contour_area = 4000  # Adjust this value as needed
+        min_contour_area = 3450  # Adjust this value as needed
         max_contour_area = 15000  # Adjust this value as needed
         contour_area = cv2.contourArea(approx)
 
