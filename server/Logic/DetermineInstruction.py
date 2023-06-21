@@ -34,6 +34,7 @@ def ball_instruction(angle_of_robot, angle_of_ball, distance_to_ball, angle_of_b
                      ball_point_coordinates, is_obstacle, obstacle_angle, obstacle_distance):
 
     if is_obstacle:
+        print('heyy der er en obstacle')
         return (determine_turn_direction(angle_of_robot, obstacle_angle, obstacle_distance),
                 calculate_shortest_angle(angle_of_robot, obstacle_angle), obstacle_distance)
 

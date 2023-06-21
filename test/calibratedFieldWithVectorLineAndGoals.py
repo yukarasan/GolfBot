@@ -37,18 +37,12 @@ def determineNextMove():
     # if nuværende antalBolde == 5 || antal == 0 --> gå til goal, else --> gå til nærmeste bold
     #if num_balls_white + num_balls_orange == 5 or num_balls_white + num_balls_orange == 0:
     if num_balls == 0 or time.time() - start_time >= 200:
-        obstacle_point = avoid_obstacle(green_center, target_goal, get_obstacle_center())
-        obstacle_angle = calculate_angle(green_center, obstacle_point)
-        obstacle_distance = determine_distance_to_obstacle(green_center, obstacle_point)
         goal_instruction = determine_goal_instruction(angle_to_goal,
                                                       angle_of_robot,
                                                       goal_distance,
                                                       distance_to_goal_point=goal_point_distance,
                                                       angle_to_goal_point=goal_point_angle,
-                                                      robot_in_squares=robot_in_squares,
-                                                      is_obstacle=is_obstacle(green_center, target_goal),
-                                                      obstacle_angle=obstacle_angle,
-                                                      obstacle_distance=obstacle_distance
+                                                      robot_in_squares=robot_in_squares
                                                       )
         data = {"instruction": goal_instruction[0],
                 "angle": "{:.2f}".format(goal_instruction[1]),
@@ -56,18 +50,12 @@ def determineNextMove():
                 "go to goal": "yes"
                 }
     else:
-        obstacle_point = avoid_obstacle(green_center, closest_ball_center, get_obstacle_center())
-        obstacle_angle = calculate_angle(green_center, obstacle_point)
-        obstacle_distance = determine_distance_to_obstacle(green_center, obstacle_point)
         ball_instructions = ball_instruction(angle_of_robot=angle_of_robot,
                                               angle_of_ball=angle_to_ball,
                                               distance_to_ball= ball_distance,
                                               angle_of_ball_point=angle_of_ball_point,
                                               distance_to_ball_point=distance_to_ball_point,
-                                              ball_point_coordinates= ball_point,
-                                              is_obstacle=is_obstacle(green_center, closest_ball_center),
-                                              obstacle_angle=obstacle_angle,
-                                              obstacle_distance=obstacle_distance
+                                              ball_point_coordinates= ball_point
                                               )
         data = {"instruction": ball_instructions[0],
                 "angle": "{:.2f}".format(ball_instructions[1]),
@@ -95,8 +83,6 @@ pink_center_back = None
 closest_ball_center = None
 
 num_balls = None
-target_goal = None
-
 
 def flask_server():
     app.run(host="0.0.0.0", port=8081)
@@ -152,8 +138,6 @@ def calculate_distance(pt1, pt2):
     # Calculate Euclidean distance between two points
     return np.sqrt((pt1[0] - pt2[0]) ** 2 + (pt1[1] - pt2[1]) ** 2)
 
-def determine_distance_to_obstacle(robot, obstacle_point):
-    return calculate_distance(robot, obstacle_point) * conversion_factor
 def calculate_angle(center1, center2):
     x1, y1 = center1
     x2, y2 = center2
@@ -224,7 +208,7 @@ while True:
 
     frame_height, frame_width = frame.shape[:2]
 
-    print(int(time.time() - start_time))
+
 
     # Calculate the midpoints for the goals
     # Adjusting them by half of the wall's thickness
@@ -530,8 +514,6 @@ while True:
         #Setting if we want to go to left goal or not
         leftGoal = True
         if distance_to_left_goal < distance_to_right_goal or leftGoal is True:
-            target_goal = goal_left
-
             angle_to_goal = goal_angle = calculate_angle(pink_center, goal_left)
             goal_distance = distance_to_left_goal
             draw_line_to_goals(frame, pink_center, goal_left, (0, 255, 255), thickness=2)
@@ -539,8 +521,6 @@ while True:
             goal_point_angle = calculate_angle(pink_center, goal_point_left)
             goal_point_distance = distance_to_left_goal_point
         else:
-            target_goal = goal_right
-
             angle_to_goal = goal_angle = calculate_angle(pink_center, goal_right)
             goal_distance = distance_to_right_goal
             draw_line_to_goals(frame, pink_center, goal_right, (0, 255, 255), thickness=2)
@@ -554,8 +534,6 @@ while True:
                     0.7, (255, 0, 0), 2)
 
     cv2.drawContours(frame, contours_red, -1, (0, 0, 0), 3)
-
-    obstacle_contours, frame = detect_obstacle(frame)
 
     cv2.imshow('All Contours', frame)
 
