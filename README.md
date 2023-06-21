@@ -5,7 +5,7 @@ This project demonstrates a LEGO EV3 robot that can pick up balls and navigate o
 
 [Watch the video](https://www.youtube.com/watch?v=your-video-id)
 
-## Features (as of 17-06-2023)
+## Features (as of 21-06-2023)
 
 1. LEGO EV3 robot with a four-wheel mechanism to pick up balls, and a fork mechanism to push balls into the picker. 
 2. A server that sends instructions to the robot, such as `"Forward"`, `"Left"`, `"Right"` or `"Shoot"`, with their associated data such as `"angle"`, `"distance"` and more.
@@ -50,6 +50,6 @@ This project demonstrates a LEGO EV3 robot that can pick up balls and navigate o
     * Right wheel (Motor port.B)
     * Spinner mechanism (Motor port.C)
     * Four-wheel mechanism (Motor port.D)
-    * Ultrasonic sound wave sensor (Port.S1)
+    * Touch sensor (Port.S3)
 4. Run the server code on your computer, to get the IP address and port number. 
 5. Run the robot code on your EV3 brick by using an IDE such as Visual Studio Code.
