@@ -14,7 +14,7 @@ class SpinnerThreadInwards(Thread):
         Thread.__init__(self)
         self.spinner = spinner
         self.running = True
-        self.rotation = 360  # one full rotation
+        self.rotation = 360
 
     def run(self):
         while self.running:
@@ -22,29 +22,24 @@ class SpinnerThreadInwards(Thread):
 
     def stop(self):
         self.running = False
-        self.spinner.stop()  # Stops the spinner motor
+        self.spinner.stop()
 
 def main():
-    # Initialize the EV3 Brick
     ev3 = EV3Brick()
-
-    # Initialize the spinner motor
     spinner = Motor(Port.C)
-
-    # Create and start the SpinnerThread
     spinner_thread = SpinnerThreadInwards(spinner)
     spinner_thread.start()
 
     numOfLoop = 0
     while spinner_thread.running and numOfLoop < 5:
-        wait(1000)  
+        wait(1000)
         numOfLoop += 1
         print(numOfLoop)
 
     if spinner_thread.running:
         spinner_thread.stop()
-    
-    wait(10000)  # Wait for 10 seconds
+
+    wait(10000)
 
 if __name__ == "__main__":
     main()

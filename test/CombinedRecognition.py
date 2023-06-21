@@ -1,32 +1,24 @@
 import cv2 as cv
 import numpy as np
 
-# Define video capture device
 videoCapture = cv.VideoCapture(0)
 
-# Define color ranges
 white_lower = np.array([0, 0, 200])
 white_upper = np.array([180, 30, 255])
-
 red_lower = np.array([0, 100, 100])
 red_upper = np.array([10, 255, 255])
-
 green_lower = np.array([30, 30, 30], dtype=np.uint8)
 green_upper = np.array([80, 255, 255], dtype=np.uint8)
 
-# Initialize previous circle and rectangle
 prevCircle = None
 prevRect = None
 
 while True:
-    # Read frame from video capture
     ret, frame = videoCapture.read()
     if not ret: break
     
-    # Convert frame to grayscale
     gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
 
-    # Detect white circles
     hsv = cv.cvtColor(frame, cv.COLOR_BGR2HSV)
     white_mask = cv.inRange(hsv, white_lower, white_upper)
     white_mask = cv.erode(white_mask, np.ones((5,5), np.uint8), iterations=1)
@@ -42,7 +34,6 @@ while True:
                 cv.circle(frame,center,radius,(0,255,0),2)
                 prevCircle = center + (radius,)
 
-    # Detect red rectangles
     red_mask = cv.inRange(hsv, red_lower, red_upper)
     red_mask = cv.erode(red_mask, np.ones((5,5), np.uint8), iterations=1)
     red_mask = cv.dilate(red_mask, np.ones((5,5), np.uint8), iterations=1)
@@ -63,7 +54,6 @@ while True:
                     prevRect = (x,y,w,h)
                     break
 
-    # Detect green rectangles
     green_mask = cv.inRange(hsv, green_lower, green_upper)
     green_mask = cv.erode(green_mask, np.ones((5,5), np.uint8), iterations=1)
     green_mask = cv.dilate(green_mask, np.ones((5,5), np.uint8), iterations=1)
@@ -83,7 +73,6 @@ while True:
     if cv.waitKey(1) & 0xFF == ord('q'):
         break
 
-# Release the capture device and destroy all windows
 cap.release()
 cv.destroyAllWindows()
 

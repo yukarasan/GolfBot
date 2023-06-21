@@ -8,7 +8,6 @@ red_upper = np.array([10, 255, 255])
 
 
 while True:
-    # Capture frame-by-frame
     ret, frame = cap.read()
     
     hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
@@ -28,10 +27,8 @@ while True:
     cv2.drawContours(frame, contours, -1, (0,255,0),3)
     cv2.imshow('All Contours', frame)
 
-    # Exit the loop if the 'q' key is pressed
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
 
-# Release the capture device and destroy all windows
 cap.release()
 cv2.destroyAllWindows()
