@@ -9,12 +9,13 @@ from pybricks.media.ev3dev import SoundFile, ImageFile
 
 
 def main():
-    # Objects
+    # Objects and setup
     ev3 = EV3Brick()
     colorSensor = ColorSensor(Port.S1)
 
     # Test the color sensor
     while True:
+        wait(500)   # Wait 500ms
         if red(colorSensor):
             print("Red")
             ev3.light.on(Color.RED)
@@ -23,9 +24,12 @@ def main():
             ev3.light.on(Color.GREEN)
 
 
-# Function that detects the red color
+# Function that detects the red color and returns true if it is red
 def red(colorSensor: ColorSensor):
     if colorSensor.color() == Color.RED:
         return True
     else:
         return False
+
+if __name__ == "__main__":
+    main()
