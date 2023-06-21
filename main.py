@@ -23,6 +23,9 @@ going_to_goal = 0
 press_count = 0
 last_press_state = False
 
+# Global variable to keep track of the second round
+second_round = False
+
 
 # Thread for the four_wheel_mechanism belt
 class FourWheelMechanism(Thread):
@@ -38,6 +41,7 @@ class FourWheelMechanism(Thread):
 
     def stop(self):
         self.running = False
+        self.four_wheel_mechanism.stop()  # Stops the four_wheel_mechanism motor
 
     def stop_four_wheel_mechanism(self):
         self.four_wheel_mechanism.stop()  # Stops the four_wheel_mechanism motor
@@ -75,8 +79,6 @@ class SpinnerThreadOutward(Thread):
         while self.running:
             self.spinner.run(speed=300)
 
-            # Stops the spinner motor
-
     def stop(self):
         self.running = False
         self.spinner.stop()
@@ -90,8 +92,8 @@ def main():
     right_wheel = Motor(Port.B)
     four_wheel_mechanism = Motor(Port.D)
     spinner = Motor(Port.C)
-    left_touch_sensor = TouchSensor(Port.S1)
-    right_touch_sensor = TouchSensor(Port.S2)
+    left_touch_sensor = TouchSensor(Port.S3)
+    # right_touch_sensor = TouchSensor(Port.S2)
 
     # Wheel diameter and axle track (in millimeters)
     wheel_diameter = 56
@@ -105,6 +107,9 @@ def main():
     # ImageFile object to display the winning image when the robot reaches the end
     winning_image = ImageFile.THUMBS_UP
 
+    # Make the robot move forward for 10 seconds and after that reverse for 5 seconds
+    remove_cross(robot=robot)
+
     # Start the four_wheel_mechanism belt thread
     four_wheel_mechanism_thread = FourWheelMechanism(four_wheel_mechanism)
     four_wheel_mechanism_thread.start()
@@ -114,16 +119,33 @@ def main():
     spinner_thread.start()
     outwards_spinner_thread = SpinnerThreadOutward(spinner)
 
+    global second_round
+    global press_count
+    global going_to_goal
+
     # Make the robot ask for instructions until it stopInstructions is True
     while stopInstructions is not True:
+
+        if second_round:
+            # Start the four_wheel_mechanism belt thread
+            four_wheel_mechanism_thread = FourWheelMechanism(four_wheel_mechanism)
+            four_wheel_mechanism_thread.start()
+
+            # Start the spinner threads
+            spinner_thread = SpinnerThreadInwards(spinner)
+            spinner_thread.start()
+            outwards_spinner_thread = SpinnerThreadOutward(spinner)
+            outwards_spinner_thread.start()
+
+            going_to_goal = 0
+
         # Socket connection setup
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.connect(("192.168.1.215", 8081))  # 10.209.234.177 || 172.20.10.4
+        sock.connect(("172.20.10.4", 8081))  # 10.209.234.177 || 172.20.10.4
 
         check_press(left_touch_sensor)
-        check_press(right_touch_sensor)
 
-        global press_count
+        print("Press count:", press_count)
 
         reverse_distance = -100  # Distance to move backwards (10 cm)
 
@@ -131,12 +153,12 @@ def main():
         if (press_count >= 1) and going_to_goal == 0:
             print("The press count has been reached")
             press_count = 0
-            wait(500)  # Wait for 500 milliseconds
+            # wait(500)  # Wait for 500 milliseconds
             robot.straight(reverse_distance)
         else:
             try:
                 # Send request
-                request = "GET / HTTP/1.1\r\nHost: 192.168.1.215\r\n\r\n"
+                request = "GET / HTTP/1.1\r\nHost: 172.20.10.4\r\n\r\n"
                 sock.send(request.encode())
                 # Read response
                 response = ''
@@ -177,7 +199,7 @@ def main():
 
     ev3.speaker.play_file(winning_sound)  # Play the winning sound
     ev3.screen.load_image(winning_image)  # Display the winning image
-    wait(2000)  # Wait for 5 seconds
+    # wait(2000)  # Wait for 5 seconds
 
 
 # Function to process the instruction from the server and move the robot accordingly
@@ -198,7 +220,6 @@ def process_instruction(
         going_to_goal += 1
         if going_to_goal == 3:
             spinner_thread.stop()
-            going_to_goal = 0
     else:
         going_to_goal = 0
 
@@ -211,13 +232,13 @@ def process_instruction(
 
         # If the robot has turned left or right 20 times, make the robot move backwards if and only
         # if it is not going to the goal and is not hitting the wall
-        if direction_counter >= 20:
+        if direction_counter >= 15:
             direction_counter = 0
 
             if (press_count >= 1) and going_to_goal == 0:
                 print("The press count has been reached")
                 press_count = 0
-                wait(500)
+                # wait(500)
                 robot.straight(reverse_distance)
             else:
                 move(robot=robot, distance=-10)  # move backwards 10 cm
@@ -226,41 +247,30 @@ def process_instruction(
 
     if instruction["instruction"] == "Left":
         angle = float(instruction["angle"])
-        distance = float(instruction["distance"])
 
         if (press_count >= 1) and going_to_goal == 0:
             print("The press count has been reached")
             press_count = 0
-            wait(500)
+            # wait(500)
             robot.straight(reverse_distance)
         else:
-            if distance < 0 and abs(angle) > 80 and going_to_goal == 0:
-                print("Delete me maybe? 1")
-                move(robot=robot, distance=reverse_distance)
-
             # Turn the robot left
             turn(robot=robot, angle=angle)
 
     elif instruction["instruction"] == "Right":
         angle = float(instruction["angle"])
-        distance = float(instruction["distance"])
 
         if (press_count >= 1) and going_to_goal == 0:
             print("The press count has been reached")
             press_count = 0
-            wait(500)
+            # wait(500)
             robot.straight(reverse_distance)
         else:
-            if distance < 0 and abs(angle) > 80 and going_to_goal == 0:
-                print("Delete me maybe? 2")
-                move(robot=robot, distance=reverse_distance)
-
             # Turn the robot right
             turn(robot=robot, angle=angle)
 
     elif instruction["instruction"] == "Forward":
         distance = float(instruction["distance"])
-        angle = float(instruction["angle"])
 
         if (press_count >= 1) and going_to_goal == 0:
             print("The press count has been reached")
@@ -268,13 +278,8 @@ def process_instruction(
             wait(500)
             robot.straight(reverse_distance)
         else:
-            if distance < 0 and abs(angle) > 80 and going_to_goal == 0:
-                print("Delete me maybe? 3")
-                move(robot=robot, distance=reverse_distance)
-                wait(500)
-
             # If the distance to the ball is over 35, move half the distance
-            elif distance > 35:
+            if distance > 35:
                 move(robot=robot, distance=distance / 2)
                 wait(500)
             else:
@@ -289,11 +294,19 @@ def process_instruction(
         # Start the outward spinner thread
         outwards_spinner_thread.start()
 
+        wait(500)  # Wait for 500 milliseconds
+
         # Release the four_wheel_mechanism
         release_four_wheel_mechanism(four_wheel_mechanism=four_wheel_mechanism)
 
-        global stopInstructions
-        stopInstructions = True
+        global second_round
+        second_round = True
+
+        # Make the robot move backwards for 10 cm for the second round
+        move(robot=robot, distance=-10)
+
+        #global stopInstructions
+        #stopInstructions = True
 
 
 # A function to turn the robot left or right depending on the angle
@@ -315,12 +328,16 @@ def stop(robot: DriveBase):
 def check_press(touch_sensor: TouchSensor):
     global press_count
     global last_press_state
-    current_state = touch_sensor.pressed()
 
-    if current_state and not last_press_state:  # if the sensor is pressed now and wasn't pressed in the last check
-        press_count += 1
-
-    last_press_state = current_state
+    if going_to_goal == 0:
+        current_state = touch_sensor.pressed()
+        
+        if current_state and not last_press_state:  # if the sensor is pressed now and wasn't pressed in the last check
+            press_count += 1
+            
+        last_press_state = current_state
+    else: 
+        last_press_state = False
 
 
 # A function that releases the four wheel mechanism to shoot the balls in the goal
@@ -336,6 +353,14 @@ def play_winning_sound(ev3: EV3Brick, soundfile):
         ev3.speaker.play_file(soundfile)
     except Exception as e:
         print("Failed to play sound.")
+
+
+def remove_cross(robot: DriveBase): 
+    robot.drive(100, 0)
+    wait(11000)
+    robot.drive(-100, 0)
+    wait(5000)
+    robot.stop()
 
 
 # Display winning image on the EV3 screen when the robot finishes the course
