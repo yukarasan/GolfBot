@@ -131,6 +131,7 @@ a = 0
 lower_orange = np.array([25, 50, 20])
 upper_orange = np.array([32, 110, 255])
 kernel = np.ones((5, 5), np.uint8)
+closest_ball_center = None
 
 
 def calculate_angle_between_lines(p1, p2, p3, p4):
@@ -370,7 +371,7 @@ while True:
         contours_white, _ = cv2.findContours(mask_white, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         min_distance = np.inf
         min_distance_orange = np.inf
-        closest_ball_center = None
+
 
         # Convert BGR to grayscale
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
@@ -404,6 +405,7 @@ while True:
                     if pixel_distance < min_distance:
                         min_distance = pixel_distance
                         closest_ball_center = center
+            if num_balls == 0: closest_ball_center = None
 
             # Check if the ball is within the desired y-coordinate range
             if closest_ball_center is not None:
