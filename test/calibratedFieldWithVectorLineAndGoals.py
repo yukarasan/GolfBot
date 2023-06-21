@@ -34,7 +34,7 @@ def is_point_inside_squares(point, square1_top_left, square1_bottom_right, squar
 def determineNextMove():
     # if nuværende antalBolde == 5 || antal == 0 --> gå til goal, else --> gå til nærmeste bold
     #if num_balls_white + num_balls_orange == 5 or num_balls_white + num_balls_orange == 0:
-    if num_balls == 0 or time.time() - start_time >= 420:
+    if num_balls == 0 or (time.time() - start_time >= 270 and time.time() - start_time <= 270 + 50):
         goal_instruction = determine_goal_instruction(angle_to_goal,
                                                       angle_of_robot,
                                                       goal_distance,
@@ -373,7 +373,7 @@ while True:
             # Draw the circles
             num_balls = 0
             for (x, y, r) in circles:
-                if x >= goal_left[0] - 12 and x <= goal_right[0] + 12 and calculate_distance(get_obstacle_center(), (x,y)) >= 150:
+                if x >= goal_left[0] - 12 and x <= goal_right[0] + 12 and calculate_distance(get_obstacle_center(), (x,y)) >= 171:
                     num_balls += 1
                     cv2.circle(frame, (x, y), r, (0, 255, 0), 2)
                     center = (int(x), int(y))
@@ -510,7 +510,7 @@ while True:
     # Draw a line to the closest goal
     if pink_center is not None:
         #Setting if we want to go to left goal or not
-        leftGoal = True
+        leftGoal = False
         if leftGoal is True:
             angle_to_goal = goal_angle = calculate_angle(pink_center, goal_left)
             goal_distance = distance_to_left_goal
@@ -531,8 +531,8 @@ while True:
         cv2.putText(frame, f"distance to goal: {goal_distance:.2f}", (10, 90), cv2.FONT_HERSHEY_SIMPLEX,
                     0.7, (255, 0, 0), 2)
 
-    #cv2.drawContours(frame, contours_red, -1, (0, 0, 0), 3)
-
+    cv2.drawContours(frame, contours_red, -1, (0, 0, 0), 3)
+    #358+542+88+50+50
     cv2.imshow('All Contours', frame)
 
     if cv2.waitKey(1) & 0xFF == ord('q'):
