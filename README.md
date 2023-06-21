@@ -1,10 +1,9 @@
 # GolfBot - EV3 Robot
 This project demonstrates a LEGO EV3 robot that can pick up balls and navigate on a field based on instructions received from a server that is connected to a computer vision program that detect the balls in real-time using OpenCV.
 
-![image](https://github.com/yukarasan/GolfBot/assets/91070526/83d72d65-f643-4df9-baf5-bb2a690b9393)
+![image](https://github.com/yukarasan/GolfBot/assets/91070526/a1c1079a-38f5-4371-ad84-acfed2a14ec3)
 
 [Watch the video](https://www.youtube.com/watch?v=your-video-id)
-
 
 ## Features (as of 17-06-2023)
 
