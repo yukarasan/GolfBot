@@ -5,7 +5,6 @@ global top_left, top_right, bottom_right, bottom_left
 global obstacle_points
 global obstacle_center
 
-
 def get_obstacle_center():
     return obstacle_center
 
@@ -17,15 +16,20 @@ def avoid_obstacle(robot, ball, center):
     print("robottens kvadrant", robot_q)
     print("boldens kvadrant", ball_q)
 
-    if abs(robot_q - ball_q) == 2:
-        print('gå til nærmeste', )
-        dest = get_closest_corner(robot)
-        move_to = obstacle_points[dest - 1]
-
-
-    elif robot_q == ball_q:
+    if robot_q == ball_q:
         print('gå hen til bold')
         move_to = ball
+
+    elif abs(robot_q - ball_q) == 2:
+        if robot_q == 4:
+            dest = 1
+        else:
+            dest = (robot_q + 1)
+        #dest = get_closest_corner(robot)
+        print('gå til nærmeste', dest)
+
+        move_to = obstacle_points[dest - 1]
+
     else:
         print('gå til boldkvadrant  ', ball_q)
         dest = ball_q
@@ -86,8 +90,8 @@ def draw_rect_and_center(image, contours):
         approx = cv2.approxPolyDP(contour, epsilon, True)
 
         # Check if the contour has a certain size range
-        min_contour_area = 4000  # Adjust this value as needed
-        max_contour_area = 15000  # Adjust this value as needed
+        min_contour_area = 3000  # Adjust this value as needed
+        max_contour_area = 10000  # Adjust this value as needed
         contour_area = cv2.contourArea(approx)
 
         if min_contour_area < contour_area < max_contour_area:
@@ -112,7 +116,7 @@ def draw_rect_and_center(image, contours):
             rotation_matrix = cv2.getRotationMatrix2D((center_x, center_y), angle, scale_factor)
             rotated_box = cv2.transform(np.array([box]), rotation_matrix)[0]
 
-            # Get the corner points of the rotated and scaled rectangle
+            # Get the corner points of the rotated and  scaled rectangle
             obstacle_points = (
             tuple(rotated_box[2]), tuple(rotated_box[1]), tuple(rotated_box[0]), tuple(rotated_box[3]))
             top_right = obstacle_points[0]
@@ -161,7 +165,6 @@ def find_quadrant(obj_coordinate, center_coordinate):
         return 4
 
 
-
 def get_closest_corner(robot_coordinate):
     distances = []
     corners = [top_left, top_right, bottom_right, bottom_left]
@@ -171,11 +174,11 @@ def get_closest_corner(robot_coordinate):
         distance = ((corner[0] - robot_coordinate[0]) ** 2 + (corner[1] - robot_coordinate[1]) ** 2) ** 0.5
         distances.append(distance)
 
-    # Find the index of the minimum distance
-    closest_corner_index = distances.index(min(distances))
+    # Find the corner with minimum distance. +1 for clarity regarding its quadrant.
+    closest_corner = distances.index(min(distances)) +1
 
     # Return the closest corner
-    return closest_corner_index
+    return closest_corner
 
 
 def is_robot_close_to_obstacle(robot_contour, square_contour):

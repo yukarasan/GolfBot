@@ -103,7 +103,16 @@ def flask_server():
     app.run(host="0.0.0.0", port=8081)
 
 
-cap = cv2.VideoCapture(0)
+cap = cv2.VideoCapture(1)
+# Set the capture properties
+cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)  # Set the frame width
+cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)  # Set the frame height
+cap.set(cv2.CAP_PROP_FPS, 30)  # Set the frame rate
+
+# Check if the capture properties are set correctly
+print("Frame Width:", cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+print("Frame Height:", cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+print("Frame Rate:", cap.get(cv2.CAP_PROP_FPS))
 
 # Range for green
 lower_green = np.array([30, 30, 30], dtype=np.uint8)
