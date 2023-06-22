@@ -16,19 +16,15 @@ while True:
 
     hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
-    # Mask for green object
     mask_green = cv2.inRange(hsv, lower_green, upper_green)
 
-    # Mask for white object
     mask_white = cv2.inRange(hsv, lower_white, upper_white)
 
-    # Apply morphological operations
     mask_green = cv2.erode(mask_green, kernel, iterations=1)
     mask_green = cv2.dilate(mask_green, kernel, iterations=1)
     mask_white = cv2.erode(mask_white, kernel, iterations=1)
     mask_white = cv2.dilate(mask_white, kernel, iterations=1)
 
-    # Find green object centroid
     contours_green, _ = cv2.findContours(mask_green, cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE)
     contours_green = sorted(contours_green, key=cv2.contourArea, reverse=True)
 
@@ -39,7 +35,6 @@ while True:
         cv2.circle(frame, (cX, cY), 7, (255, 255, 255), -1)
         cv2.putText(frame, f"centroid {cX}, {cY}", (cX - 20, cY - 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
 
-    # Find white object and draw minimum enclosing circle
     contours_white, _ = cv2.findContours(mask_white, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     for cnt in contours_white:
         if cnt.shape[0] > 5:

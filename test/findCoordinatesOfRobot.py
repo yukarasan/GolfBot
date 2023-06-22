@@ -20,17 +20,13 @@ while True:
 
     contours, hierarchy= cv2.findContours(blur, cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE)
     
-    # Sort contours by area (Assume that the largest contour is the robot)
     contours = sorted(contours, key=cv2.contourArea, reverse=True)
 
     if contours:
-        # Get the moments of the largest contour
         M = cv2.moments(contours[0])
-        # Calculate the centroid of the contour from the moments
         cX = int(M["m10"] / M["m00"])
         cY = int(M["m01"] / M["m00"])
         
-        # Draw a circle at the centroid
         cv2.circle(frame, (cX, cY), 7, (255, 255, 255), -1)
         cv2.putText(frame, f"centroid {cX}, {cY}", (cX - 20, cY - 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
 

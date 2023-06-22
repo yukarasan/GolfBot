@@ -4,56 +4,37 @@ import numpy as np
 videoCapture = cv.VideoCapture(0)
 prevCircle = None
 
-# Define range of white color in HSV
 lower_white = np.array([0, 0, 200])
 upper_white = np.array([180, 30, 255])
 
-#Defining range of red
 red_lower = np.array([0, 100, 100])
 red_upper = np.array([10, 255, 255])
     
-#Defining the range of green
-# Define range of green color in HSV
 lower_green = np.array([30, 30, 30], dtype=np.uint8)
 upper_green = np.array([80, 255, 255], dtype=np.uint8)
 
 while True:
     ret, frame = videoCapture.read()
     if not ret: break
-    
-    
-    #Find the white balls
-    # Convert BGR to HSV
+   
     hsv = cv.cvtColor(frame, cv.COLOR_BGR2HSV)
-
-    
-
-    # Threshold the HSV image to get only white colors
     mask = cv.inRange(hsv, lower_white, upper_white)
 
-    # Apply some morphological operations to the mask to remove noise
     kernel = np.ones((5,5),np.uint8)
     mask = cv.erode(mask,kernel,iterations = 1)
     mask = cv.dilate(mask,kernel,iterations = 1)
     
-
-    # Find contours in the mask and loop over them
     contours, _ = cv.findContours(mask, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
     for cnt in contours:
-        # Fit a circle to the contour if it has enough points
         if cnt.shape[0] > 5:
             (x,y),radius = cv.minEnclosingCircle(cnt)
             center = (int(x),int(y))
             radius = int(radius)
             
-            # Draw the circle if it's big enough and track it
             if radius > 8 and radius < 20:
                 cv.circle(frame,center,radius,(0,255,0),2)
                 prevCircle = center + (radius,)
-                
-                
-    
-    #Find the red rectangles
+                    
     hsv = cv.cvtColor(frame, cv.COLOR_BGR2HSV)
     redmask = cv.inRange(hsv, red_lower, red_upper)
     gray = cv.cvtColor(hsv, cv.COLOR_BGR2GRAY)
@@ -66,8 +47,6 @@ while True:
     
     cv.imshow('red', redblur)
     
-    
-    #Finding the robot
     hsv = cv.cvtColor(frame, cv.COLOR_BGR2HSV)
     rmask = cv.inRange(hsv, lower_green, upper_green)
     gray = cv.cvtColor(hsv, cv.COLOR_BGR2GRAY)
@@ -81,12 +60,9 @@ while True:
     
     
     cv.imshow('robot', edges)
-    
-    
-    #Showing the camera
     cv.imshow('circles', frame)
     
     if cv.waitKey(1) & 0xFF == ord('q'): break
-videoCapture.release()
 
+videoCapture.release()
 cv.destroyAllWindows()
