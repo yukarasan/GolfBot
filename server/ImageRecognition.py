@@ -9,7 +9,7 @@ import time
 
 from server.Logic.DetermineInstruction import determine_turn_direction, \
     calculate_shortest_angle, determine_goal_instruction, ball_instruction
-from server.Logic.handleObstacles_2 import detect_obstacle, get_obstacle_center
+from server.Logic.handleObstacles import detect_obstacle, get_obstacle_center
 
 app = Flask(__name__)
 
