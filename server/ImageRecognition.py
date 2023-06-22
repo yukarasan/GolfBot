@@ -13,6 +13,112 @@ from server.Logic.handleObstacles_2 import detect_obstacle, get_obstacle_center
 
 app = Flask(__name__)
 
+def flask_server():
+    app.run(port=8081)
+
+
+def is_point_inside_squares(point, square1_top_left, square1_bottom_right, square2_top_left, square2_bottom_right):
+    #Check if a point is inside any of the provided squares.
+    #Returns: True if the point is inside any of the squares, False otherwise
+    if (
+            (square1_top_left[0] <= point[0] <= square1_bottom_right[0] and
+             square1_top_left[1] <= point[1] <= square1_bottom_right[1]) or
+            (square2_top_left[0] <= point[0] <= square2_bottom_right[0] and
+             square2_top_left[1] <= point[1] <= square2_bottom_right[1])
+    ):
+        return True
+    else:
+        return False
+
+@app.route("/")
+def determineNextMove():
+    # if nuværende antalBolde == 5 || antal == 0 --> gå til goal, else --> gå til nærmeste bold
+    #if num_balls_white + num_balls_orange == 5 or num_balls_white + num_balls_orange == 0:
+    if num_balls == 0 or (time.time() - start_time >= 270 and time.time() - start_time <= 270 + 50):
+        goal_instruction = determine_goal_instruction(angle_to_goal,
+                                                      angle_of_robot,
+                                                      goal_distance,
+                                                      distance_to_goal_point=goal_point_distance,
+                                                      angle_to_goal_point=goal_point_angle,
+                                                      robot_in_squares=robot_in_squares
+                                                      )
+        data = {"instruction": goal_instruction[0],
+                "angle": "{:.2f}".format(goal_instruction[1]),
+                "distance": "{:.2f}".format(goal_instruction[2] - 4),
+                "go to goal": "yes"
+                }
+    else:
+        ball_instructions = ball_instruction(angle_of_robot=angle_of_robot,
+                                              angle_of_ball=angle_to_ball,
+                                              distance_to_ball= ball_distance,
+                                              angle_of_ball_point=angle_of_ball_point,
+                                              distance_to_ball_point=distance_to_ball_point,
+                                              ball_point_coordinates= ball_point
+                                              )
+        data = {"instruction": ball_instructions[0],
+                "angle": "{:.2f}".format(ball_instructions[1]),
+                "distance": "{:.2f}".format(ball_instructions[2]),
+                "go to goal": "no"
+                }
+
+    return jsonify(data)
+
+angle_to_ball = 0
+angle_of_robot = 0
+ball_distance = 0
+angle_to_goal = 0
+goal_distance = 0
+goal_point_distance = 0
+goal_point_angle = 0
+ball_point = (0, 0)
+
+distance_to_ball_point = 0
+angle_of_ball_point = 0
+
+robot_in_squares = False
+pink_center = None
+pink_center_back = None
+closest_ball_center = None
+
+num_balls = None
+
+def flask_server():
+    app.run(host="0.0.0.0", port=8081)
+
+    def calculate_angle_between_lines(p1, p2, p3, p4):
+        # Calculate slopes
+
+        if p2[1] - p1[1] != 0 and p2[0] - p1[0] != 0 and p4[1] - p3[1] != 0 and p4[0] - p3[0] != 0:
+            m1 = (p2[1] - p1[1]) / (p2[0] - p1[0])
+            m2 = (p4[1] - p3[1]) / (p4[0] - p3[0])
+        else:
+            m1 = 0
+            m2 = 0
+
+        # Calculate angle
+        if 1 + m1 * m2 != 0 and m2 - m1 != 0:
+            tan_theta = abs((m2 - m1) / (1 + m1 * m2))
+            angle = math.degrees(math.atan(tan_theta))
+        else:
+            angle = 0
+
+        # Calculate cross product
+        v1 = [p2[0] - p1[0], p2[1] - p1[1]]  # vector 1, green line
+        v2 = [p4[0] - p3[0], p4[1] - p3[1]]  # vector 2, red line
+        cross_product = v1[0] * v2[1] - v1[1] * v2[0]
+
+        if cross_product < 0:
+            angle = -angle
+
+        return angle
+
+    def calculate_new_coordinates(center, angle, distance):
+        x, y = center
+        angle_radians = math.radians(angle)
+        new_x = x - distance * math.cos(angle_radians)
+        new_y = y - distance * math.sin(angle_radians)
+        return int(new_x), int(new_y)
+
 cap = cv2.VideoCapture(0)
 
 # Range for green
